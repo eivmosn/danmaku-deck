@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { AccountsStore } from '@/accounts/store'
 import { DanmakuBus } from '@/danmaku-bus'
@@ -14,6 +17,8 @@ import { Orchestrator } from '@/orchestrator'
 
 export interface BuildAppOptions {
   logger?: boolean
+  /** 前端构建产物目录，传了才托管 */
+  webDir?: string
   orchestrator?: Orchestrator
   logs?: LogService
   bus?: DanmakuBus
@@ -36,6 +41,18 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerEventRoutes(app, logs, bus)
   registerPlatformRoutes(app, orchestrator)
   registerAccountRoutes(app, accounts, orchestrator, logs)
+
+  if (options.webDir && existsSync(join(options.webDir, 'index.html'))) {
+    void app.register(fastifyStatic, { root: options.webDir })
+    // 前端是单页应用，非 /api 的路径都回 index.html
+    app.setNotFoundHandler((request, reply) => {
+      if (request.url.startsWith('/api/')) {
+        reply.code(404)
+        return { ok: false, error: '接口不存在' }
+      }
+      return reply.sendFile('index.html')
+    })
+  }
   registerBilibiliLoginRoutes(app, {
     auth: options.bilibiliAuth ?? new BilibiliAuth(),
     accounts,

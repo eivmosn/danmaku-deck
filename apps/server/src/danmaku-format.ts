@@ -20,6 +20,26 @@ export function describe(event: DanmakuEvent): string {
   }
 }
 
+/** 只取正文，昵称由 IRC 的消息头携带，避免屏幕上重复 */
+export function describeBody(event: DanmakuEvent): string {
+  switch (event.kind) {
+    case 'gift':
+      return `送出 ${event.text}${event.count > 1 ? ` ×${event.count}` : ''}`
+    case 'guard':
+      return `开通了${event.text}`
+    case 'superchat':
+      return `醒目留言：${event.text}`
+    case 'enter':
+      return '进入了直播间'
+    case 'follow':
+      return '关注了主播'
+    case 'like':
+      return '分享了直播间'
+    default:
+      return event.text
+  }
+}
+
 /** 礼物、舰长、SC 才值得记 info，其余走 debug 免得刷屏 */
 export function levelFor(event: DanmakuEvent): 'info' | 'debug' {
   return event.kind === 'gift' || event.kind === 'guard' || event.kind === 'superchat'

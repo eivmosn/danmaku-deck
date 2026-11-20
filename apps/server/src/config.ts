@@ -5,6 +5,8 @@ export const configSchema = z.object({
   host: z.string().default('0.0.0.0'),
   port: z.coerce.number().int().positive().default(8787),
   logLevel: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  /** PS5 聊天窗口连的端口 */
+  ircPort: z.coerce.number().int().positive().default(6667),
 })
 
 export type Config = z.infer<typeof configSchema>
@@ -14,5 +16,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     host: env.PS5LB_HOST,
     port: env.PS5LB_PORT,
     logLevel: env.PS5LB_LOG_LEVEL,
+    ircPort: env.PS5LB_IRC_PORT,
   })
 }
