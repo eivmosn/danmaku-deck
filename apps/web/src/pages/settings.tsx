@@ -1,4 +1,5 @@
 import { BilibiliLogin } from '@/components/bilibili-login'
+import { PushTargets } from '@/components/push-targets'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLiveStore } from '@/stores/live'
@@ -49,6 +50,16 @@ export function SettingsPage() {
             <span className="text-xs text-[var(--color-muted)]">还没有登录</span>
           )}
           <BilibiliLogin loggedIn={Boolean(bilibili?.accountName)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">推流地址</CardTitle>
+          <span className="text-[11px] text-[var(--color-muted)]">平台接口接入前手动填写</span>
+        </CardHeader>
+        <CardContent>
+          <PushTargets />
         </CardContent>
       </Card>
 

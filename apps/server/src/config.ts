@@ -7,6 +7,8 @@ export const configSchema = z.object({
   logLevel: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   /** PS5 聊天窗口连的端口 */
   ircPort: z.coerce.number().int().positive().default(6667),
+  /** mediamtx 的 RTMP 端口，推流从这里拉 */
+  rtmpPort: z.coerce.number().int().positive().default(1935),
 })
 
 export type Config = z.infer<typeof configSchema>
@@ -17,5 +19,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: env.PS5LB_PORT,
     logLevel: env.PS5LB_LOG_LEVEL,
     ircPort: env.PS5LB_IRC_PORT,
+    rtmpPort: env.PS5LB_RTMP_PORT,
   })
 }

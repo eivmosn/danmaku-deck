@@ -7,12 +7,15 @@ import { describe, levelFor } from '@/danmaku-format'
 import { createLogger, LogService } from '@/logger'
 import { Orchestrator } from '@/orchestrator'
 import { IrcServer } from '@/danmaku/irc-server'
+import { PushService } from '@/push/push-service'
+import { PushTargetsStore } from '@/push/targets-store'
 import { DanmakuService } from '@/services/danmaku-service'
 
 const config = loadConfig()
 const logs = new LogService({ dir: process.env.PS5LB_LOG_DIR ?? 'logs' })
 const orchestrator = new Orchestrator({ logger: createLogger(logs, '收流') })
 const accounts = new AccountsStore()
+const pushTargets = new PushTargetsStore()
 const bus = new DanmakuBus()
 const webDir = new URL('../../web/dist', import.meta.url).pathname
 const app = buildApp({
@@ -20,6 +23,7 @@ const app = buildApp({
   logs,
   bus,
   accounts,
+  pushTargets,
   logger: config.logLevel !== 'fatal',
   webDir,
 })
@@ -32,6 +36,15 @@ bus.subscribe((event) => {
 
 const danmaku = new DanmakuService({ orchestrator, accounts, bus, logs })
 danmaku.start()
+
+const push = new PushService({
+  orchestrator,
+  accounts,
+  logs,
+  inputUrl: (path) => `rtmp://127.0.0.1:${config.rtmpPort}/${path}`,
+  resolveTarget: async (platform) => pushTargets.get(platform),
+})
+push.start()
 
 // PS5 聊天窗口：连 irc.twitch.tv:IRC_PORT，收到的弹幕直接显示在屏幕
 const irc = new IrcServer({ port: config.ircPort })
@@ -59,6 +72,7 @@ createLogger(logs, '系统').info('服务已启动', { host: config.host, port: 
 const shutdown = async (signal: string): Promise<void> => {
   app.log.info({ signal }, '准备退出')
   danmaku.stop()
+  push.stop()
   await irc.close()
   await app.close()
   process.exit(0)
