@@ -1,11 +1,11 @@
 import { useStorage } from '@eivmosn/utils'
 import {
+  CircleHelp,
   LayoutDashboard,
   MessagesSquare,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
-  CircleHelp,
   ScrollText,
   Settings,
   Sun,
@@ -27,40 +27,90 @@ const NAV: Array<{ to: string; label: string; icon: LucideIcon }> = [
 
 const storage = useStorage({ prefix: 'ps5lb.', type: 'localStorage' })
 
-const RAIL_CLASS = (collapsed: boolean, active: boolean): string =>
-  cn(
-    'flex h-10 items-center rounded-xl transition-colors duration-200',
-    collapsed ? 'mx-auto w-10 justify-center' : 'w-full gap-3 px-3',
-    active
-      ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
-      : 'text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]',
-  )
+interface AppShellProps {
+  children?: ReactNode
+}
+
+/**
+ * 收起：图标区 40×40 居中（轨道 64，内容区 48，居中后左边 12，中轴 32）
+ * 展开：整行铺满，左侧内边距让图标与顶部徽章左边缘对齐
+ */
+const ITEM_SHAPE = {
+  expanded: 'w-full gap-3 pl-2 pr-3 self-stretch',
+  collapsed: 'size-10 self-center justify-center px-0 gap-0',
+} as const
+const LABEL_WIDTH = {
+  expanded: 'max-w-[132px] opacity-100',
+  collapsed: 'max-w-0 opacity-0',
+} as const
 
 interface RailItemProps {
-  to: string
+  to?: string
   label: string
   collapsed: boolean
   icon: ReactNode
+  onClick?: () => void
 }
 
-/** 收起时固定 40×40 居中，展开时整行左对齐 —— 两种状态各自对称 */
-function RailItem({ to, label, collapsed, icon }: RailItemProps) {
+function RailItem({ to, label, collapsed, icon, onClick }: RailItemProps) {
+  const content = (
+    <>
+      <span className="shrink-0">{icon}</span>
+      <span
+        className={cn(
+          'overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300 ease-out',
+          collapsed ? LABEL_WIDTH.collapsed : LABEL_WIDTH.expanded,
+        )}
+      >
+        {label}
+      </span>
+    </>
+  )
+
+  const base = cn(
+    'flex h-10 items-center rounded-[10px] transition-all duration-300 ease-out',
+    collapsed ? ITEM_SHAPE.collapsed : ITEM_SHAPE.expanded,
+  )
+
+  if (to) {
+    return (
+      <NavLink
+        to={to}
+        end={to === '/'}
+        title={label}
+        className={({ isActive }) =>
+          cn(
+            base,
+            isActive
+              ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
+              : 'text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]',
+          )
+        }
+      >
+        {content}
+      </NavLink>
+    )
+  }
+
   return (
-    <NavLink
-      end={to === '/'}
-      to={to}
+    <button
+      type="button"
       title={label}
-      className={({ isActive }) => RAIL_CLASS(collapsed, isActive)}
+      onClick={onClick}
+      className={cn(
+        base,
+        'w-full text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]',
+      )}
     >
-      {icon}
-      {collapsed ? null : <span className="whitespace-nowrap text-sm font-medium">{label}</span>}
-    </NavLink>
+      {content}
+    </button>
   )
 }
 
-export function AppShell() {
+export function AppShell({ children }: AppShellProps) {
   const { mode, toggle: toggleTheme } = useThemeStore()
   const [collapsed, setCollapsedState] = useState<boolean>(() => {
+    // 支持 ?sidebar=collapsed 深链，方便截图与分享
     const forced = new URLSearchParams(window.location.search).get('sidebar')
     if (forced === 'collapsed') return true
     if (forced === 'expanded') return false
@@ -82,24 +132,26 @@ export function AppShell() {
         )}
       >
         <div
-          className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'gap-2.5 px-4')}
+          className={cn(
+            'flex h-16 shrink-0 items-center gap-2.5 transition-[padding] duration-300 ease-out',
+            collapsed ? 'pl-3' : 'pl-4',
+          )}
         >
-          <span className="inline-flex shrink-0 items-center justify-center rounded-[10px] bg-[#003791] p-2.5 text-white">
+          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#003791] text-white">
             <PlayStationLogo size={22} />
           </span>
-          {collapsed ? null : (
-            <div className="whitespace-nowrap leading-tight">
-              <div className="whitespace-nowrap text-sm font-semibold text-[var(--color-fg)]">
-                直播桥
-              </div>
-              <div className="whitespace-nowrap text-[11px] text-[var(--color-muted)]">
-                Live Bridge
-              </div>
-            </div>
-          )}
+          <div
+            className={cn(
+              'overflow-hidden whitespace-nowrap transition-all duration-300 ease-out',
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100',
+            )}
+          >
+            <div className="text-sm font-semibold text-[var(--color-fg)]">直播桥</div>
+            <div className="text-[11px] text-[var(--color-muted)]">Live Bridge</div>
+          </div>
         </div>
 
-        <nav className={cn('flex flex-1 flex-col gap-1', collapsed ? 'px-2' : 'px-2')}>
+        <nav className="flex flex-1 flex-col gap-1 overflow-hidden px-2">
           {NAV.map((item) => {
             const Icon = item.icon
             return (
@@ -108,45 +160,25 @@ export function AppShell() {
                 to={item.to}
                 collapsed={collapsed}
                 label={item.label}
-                icon={<Icon size={18} strokeWidth={1.9} className="shrink-0" />}
+                icon={<Icon size={18} strokeWidth={1.9} />}
               />
             )
           })}
         </nav>
 
         <div className="flex flex-col gap-1 border-t border-[var(--color-border)] p-2">
-          <button
-            type="button"
-            title={collapsed ? '展开侧边栏' : '收起侧边栏'}
+          <RailItem
+            collapsed={collapsed}
+            label={collapsed ? '展开' : '收起侧边栏'}
+            icon={collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             onClick={() => setCollapsed(!collapsed)}
-            className={RAIL_CLASS(collapsed, false)}
-          >
-            {collapsed ? (
-              <PanelLeftOpen size={18} className="shrink-0" />
-            ) : (
-              <PanelLeftClose size={18} className="shrink-0" />
-            )}
-            {collapsed ? null : (
-              <span className="whitespace-nowrap text-sm font-medium">收起侧边栏</span>
-            )}
-          </button>
-          <button
-            type="button"
-            title="切换主题"
+          />
+          <RailItem
+            collapsed={collapsed}
+            label={mode === 'dark' ? '浅色模式' : '深色模式'}
+            icon={mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             onClick={toggleTheme}
-            className={RAIL_CLASS(collapsed, false)}
-          >
-            {mode === 'dark' ? (
-              <Sun size={18} className="shrink-0" />
-            ) : (
-              <Moon size={18} className="shrink-0" />
-            )}
-            {collapsed ? null : (
-              <span className="whitespace-nowrap text-sm font-medium">
-                {mode === 'dark' ? '浅色模式' : '深色模式'}
-              </span>
-            )}
-          </button>
+          />
         </div>
       </aside>
 
@@ -157,8 +189,8 @@ export function AppShell() {
             return (
               <NavLink
                 key={item.to}
-                end={item.to === '/'}
                 to={item.to}
+                end={item.to === '/'}
                 className={({ isActive }) =>
                   cn(
                     'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm',
@@ -185,7 +217,7 @@ export function AppShell() {
 
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col p-5 md:p-7">
-            <Outlet />
+            {children ?? <Outlet />}
           </div>
         </main>
       </div>

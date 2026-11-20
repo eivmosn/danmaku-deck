@@ -136,3 +136,53 @@ describe('SniRelay', () => {
     client.destroy()
   })
 })
+
+describe('SniRelay 经代理转发', () => {
+  it('SOCKS5 代理可用时数据能双向透传（回归：曾卡在等待 connect 事件）', async () => {
+    // 目标回显服务
+    const target = createServer((socket) => {
+      socket.on('data', (chunk: Buffer) => socket.write(chunk))
+    })
+    await new Promise<void>((resolve) => target.listen(0, '127.0.0.1', () => resolve()))
+    const targetPort = (target.address() as { port: number }).port
+
+    // 极简 SOCKS5 服务：两轮握手后把连接桥接到目标
+    const proxy = createServer((socket) => {
+      socket.once('data', () => {
+        socket.write(Buffer.from([0x05, 0x00]))
+        socket.once('data', () => {
+          socket.write(Buffer.from([0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0]))
+          const upstream = connect(targetPort, '127.0.0.1')
+          socket.pipe(upstream)
+          upstream.pipe(socket)
+        })
+      })
+    })
+    await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', () => resolve()))
+    const proxyPort = (proxy.address() as { port: number }).port
+
+    relay = new SniRelay({
+      port: 0,
+      proxyDomains: ['twitch.tv'],
+      proxy: { host: '127.0.0.1', port: proxyPort },
+      fallbackDirect: false,
+    })
+    await relay.listen()
+    const relayPort = ((relay as unknown as { server: Server }).server.address() as { port: number }).port
+
+    const hello = await captureClientHello('www.twitch.tv')
+    const client = connect(relayPort, '127.0.0.1')
+    await new Promise<void>((resolve) => client.once('connect', () => resolve()))
+
+    const echoed = new Promise<string>((resolve) => {
+      client.once('data', (chunk: Buffer) => resolve(chunk.toString('utf8')))
+    })
+    client.write(hello)
+    const result = await echoed
+
+    expect(result).toBe(hello.toString('utf8'))
+    client.destroy()
+    proxy.close()
+    target.close()
+  })
+})

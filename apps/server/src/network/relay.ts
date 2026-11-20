@@ -81,20 +81,30 @@ export class SniRelay {
     this.options.onRoute?.(host, viaProxy)
 
     let upstream: Socket | null = null
+    // SOCKS5 返回的 socket 已经连上代理，不能再等它的 connect 事件
+    let ready = false
+
     if (viaProxy) {
       upstream = await socks5Connect(this.options.proxy, { host, port: 443 }).catch(() => null)
+      ready = upstream !== null
       if (!upstream && !this.options.fallbackDirect) throw new Error('代理不可用')
     }
-    upstream ??= connect(443, host)
 
-    await new Promise<void>((resolve, reject) => {
-      upstream!.once('connect', () => resolve())
-      upstream!.once('error', reject)
-    }).catch(() => {
-      client.destroy()
-      upstream?.destroy()
-      throw new Error('目标不可达')
-    })
+    if (!upstream) {
+      upstream = connect(443, host)
+      ready = false
+    }
+
+    if (!ready) {
+      await new Promise<void>((resolve, reject) => {
+        upstream!.once('connect', () => resolve())
+        upstream!.once('error', reject)
+      }).catch(() => {
+        client.destroy()
+        upstream?.destroy()
+        throw new Error('目标不可达')
+      })
+    }
 
     upstream.write(initial)
     client.pipe(upstream)
