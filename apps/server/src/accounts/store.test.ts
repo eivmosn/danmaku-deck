@@ -14,12 +14,12 @@ describe('AccountsStore', () => {
     const { store, dir } = makeStore()
     store.signIn({
       platform: 'bilibili',
-      displayName: '丘野Pixel',
-      externalId: '31455973',
+      displayName: '示例主播',
+      externalId: '10010001',
       secret: { SESSDATA: 'secret-value' },
     })
 
-    expect(store.get('bilibili')?.displayName).toBe('丘野Pixel')
+    expect(store.get('bilibili')?.displayName).toBe('示例主播')
     expect(store.secret('bilibili')).toEqual({ SESSDATA: 'secret-value' })
 
     const raw = readFileSync(join(dir, 'accounts.json'), 'utf8')

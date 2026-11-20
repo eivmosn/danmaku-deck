@@ -14,12 +14,12 @@ describe('LogService', () => {
   it('写入后可查询，字段与作用域完整', () => {
     const logs = makeService()
     const bili = createLogger(logs, 'B站')
-    bili.info('弹幕已连接', { roomId: 31455973 })
+    bili.info('弹幕已连接', { roomId: 10010001 })
 
     const [entry] = logs.recent()
     expect(entry?.scope).toBe('B站')
     expect(entry?.message).toBe('弹幕已连接')
-    expect(entry?.fields).toEqual({ roomId: 31455973 })
+    expect(entry?.fields).toEqual({ roomId: 10010001 })
     expect(entry?.at).toBe('2023-11-14T22:13:20.000Z')
     // UTC 22:13:20 对应中国时间次日 06:13:20
     expect(entry?.atLocal).toBe('2023-11-15 06:13:20')

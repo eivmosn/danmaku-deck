@@ -18,8 +18,8 @@ function setup(withAccount = true) {
   if (withAccount) {
     accounts.signIn({
       platform: 'bilibili',
-      displayName: '丘野Pixel',
-      externalId: '31455973',
+      displayName: '示例主播',
+      externalId: '10010001',
       secret: { SESSDATA: 'abc', bili_jct: 'def' },
     })
   }
@@ -46,7 +46,7 @@ function setup(withAccount = true) {
     bus,
     logs,
     createClient,
-    resolveRoomId: async () => '31455973',
+    resolveRoomId: async () => '10010001',
   })
   return { service, orchestrator, accounts, logs, bus, createClient, connect, stop }
 }
@@ -131,7 +131,7 @@ describe('DanmakuService 小红书', () => {
       secret: { cookie: 'a1=x' },
     })
     const pushTargets = new PushTargetsStore({ dir })
-    pushTargets.set('xiaohongshu', { server: 'rtmp://x/', key: '570548867313498219?txSecret=abc' })
+    pushTargets.set('xiaohongshu', { server: 'rtmp://x/', key: '700000000000000001?txSecret=abc' })
 
     const orchestrator = new Orchestrator({ now: fixedClock })
     const logs = new LogService({ console: false, now: fixedClock })
@@ -153,7 +153,7 @@ describe('DanmakuService 小红书', () => {
 
     expect(createClient).toHaveBeenCalledWith(
       'xiaohongshu',
-      expect.objectContaining({ roomId: '570548867313498219' }),
+      expect.objectContaining({ roomId: '700000000000000001' }),
       expect.any(Function),
     )
     service.stop()

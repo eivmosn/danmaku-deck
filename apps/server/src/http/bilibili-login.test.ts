@@ -13,7 +13,7 @@ function fakeAuth(poll: QRResult): BilibiliAuthPort {
   return {
     startQR: async () => ({ key: 'key-1', url: 'https://example.com/qr' }),
     pollQR: async () => poll,
-    profile: async () => ({ uid: '31455973', name: '丘野Pixel' }),
+    profile: async () => ({ uid: '10010001', name: '示例主播' }),
   }
 }
 
@@ -41,7 +41,7 @@ describe('B 站扫码登录接口', () => {
     const { app, accounts } = setup({
       state: 'success',
       message: '登录成功',
-      credentials: { SESSDATA: 'secret-value', DedeUserID: '31455973' },
+      credentials: { SESSDATA: 'secret-value', DedeUserID: '10010001' },
     })
 
     await app.inject({ method: 'POST', url: '/api/platforms/bilibili/login/qr' })
@@ -49,14 +49,14 @@ describe('B 站扫码登录接口', () => {
     const body = poll.json() as { ok: boolean; state: string; account: { id: string } }
 
     expect(body.state).toBe('success')
-    expect(accounts.get('bilibili')?.displayName).toBe('丘野Pixel')
+    expect(accounts.get('bilibili')?.displayName).toBe('示例主播')
     expect(poll.body).not.toContain('secret-value')
 
     const status = await app.inject({ method: 'GET', url: '/api/status' })
     const platforms = (
       status.json() as { platforms: Array<{ platform: string; accountName: string }> }
     ).platforms
-    expect(platforms.find((item) => item.platform === 'bilibili')?.accountName).toBe('丘野Pixel')
+    expect(platforms.find((item) => item.platform === 'bilibili')?.accountName).toBe('示例主播')
     await app.close()
   })
 
@@ -94,7 +94,7 @@ describe('B 站扫码登录接口', () => {
 
     const messages = logs.recent().map((entry) => entry.message)
     expect(messages.some((message) => message.includes('已生成登录二维码'))).toBe(true)
-    expect(messages.some((message) => message.includes('登录成功：丘野Pixel'))).toBe(true)
+    expect(messages.some((message) => message.includes('登录成功：示例主播'))).toBe(true)
     await app.close()
   })
 })

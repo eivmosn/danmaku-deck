@@ -78,8 +78,8 @@ describe('BilibiliAuth', () => {
 
   it('有效凭证返回昵称与 uid', async () => {
     const auth = new BilibiliAuth(async () =>
-      jsonResponse({ code: 0, data: { mid: 31455973, uname: '丘野Pixel' } }),
+      jsonResponse({ code: 0, data: { mid: 10010001, uname: '示例主播' } }),
     )
-    expect(await auth.profile({ SESSDATA: 'x' })).toEqual({ uid: '31455973', name: '丘野Pixel' })
+    expect(await auth.profile({ SESSDATA: 'x' })).toEqual({ uid: '10010001', name: '示例主播' })
   })
 })

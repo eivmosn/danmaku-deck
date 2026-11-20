@@ -46,12 +46,12 @@ describe('shouldHijack', () => {
 describe('buildAResponse', () => {
   it('生成的应答带一条 A 记录', () => {
     const query = parseQuery(makeQuery('irc.twitch.tv'))
-    const response = buildAResponse(query!, '192.168.50.168')
+    const response = buildAResponse(query!, '192.168.1.100')
 
     expect(response.readUInt16BE(0)).toBe(0x1234)
     expect(response.readUInt16BE(6)).toBe(1) // ancount
     // 最后 4 字节就是 IP
-    expect([...response.subarray(-4)]).toEqual([192, 168, 50, 168])
+    expect([...response.subarray(-4)]).toEqual([192, 168, 1, 100])
     // 问题段原样带回：报文里应能逐段找到域名标签
     for (const label of ['irc', 'twitch', 'tv']) {
       expect(response.includes(Buffer.from(label, 'ascii'))).toBe(true)
@@ -65,7 +65,7 @@ describe('DnsServer', () => {
     const server = new DnsServer({
       port,
       hijackDomains: ['twitch.tv'],
-      hijackIp: '192.168.50.168',
+      hijackIp: '192.168.1.100',
     })
     await server.listen()
 
@@ -81,7 +81,7 @@ describe('DnsServer', () => {
       })
 
     const hijacked = await ask('irc.twitch.tv')
-    expect([...hijacked.subarray(-4)]).toEqual([192, 168, 50, 168])
+    expect([...hijacked.subarray(-4)]).toEqual([192, 168, 1, 100])
 
     // 未命中劫持的查询会走上游；测试里上游不可达，因此这里只验证不崩溃
     const other = await ask('example.com').catch(() => null)

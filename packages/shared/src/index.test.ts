@@ -33,7 +33,7 @@ describe('danmakuEventSchema', () => {
     const parsed = danmakuEventSchema.parse({
       platform: 'xiaohongshu',
       kind: 'chat',
-      user: '甜心',
+      user: '观众乙',
       text: '来了',
       at: '2026-11-20T10:00:00Z',
     })

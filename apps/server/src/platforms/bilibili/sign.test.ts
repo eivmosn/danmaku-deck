@@ -8,7 +8,7 @@ import { ELECTRON_BUILD, signApp, signElectron, urlencode } from './sign'
 describe('签名', () => {
   it('Electron 开播参数签名与 Python 实现一致', () => {
     const signed = signElectron({
-      room_id: 31455973,
+      room_id: 10010001,
       platform: 'web_electron_link',
       area_v2: '236',
       csrf: 'deadbeef',
@@ -17,7 +17,7 @@ describe('签名', () => {
       ts: 1700000000,
     })
 
-    expect(signed.sign).toBe('8c0f1d862a45b05de3cc3ca69fdd5f60')
+    expect(signed.sign).toBe('6096f7ca2479eecf8328881b0c5a82e4')
   })
 
   it('APP 签名与 Python 实现一致', () => {

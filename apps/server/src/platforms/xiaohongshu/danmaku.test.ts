@@ -4,8 +4,8 @@ import { parseCatbusLine, XiaohongshuDanmakuClient } from './danmaku'
 
 /** 行格式来自 catbus 的实际输出（旧桥 xhs-bridge.mjs 里同款解析） */
 const lines = {
-  chat: '{"type":"chat","time":"2026-11-20T10:00:00Z","user":{"name":"甜心","id":"u1"},"text":"主播好呀"}',
-  gift: '{"type":"gift","time":"2026-11-20T10:00:01Z","user":{"name":"甜心"},"gift":{"name":"花","count":3}}',
+  chat: '{"type":"chat","time":"2026-11-20T10:00:00Z","user":{"name":"观众乙","id":"u1"},"text":"主播好呀"}',
+  gift: '{"type":"gift","time":"2026-11-20T10:00:01Z","user":{"name":"观众乙"},"gift":{"name":"花","count":3}}',
   enter: '{"type":"enter","time":"2026-11-20T10:00:02Z","user":{"name":"路人"}}',
   follow: '{"type":"follow","time":"2026-11-20T10:00:03Z","user":{"name":"新粉"}}',
   noise: 'warning: something happened',
@@ -17,7 +17,7 @@ describe('parseCatbusLine', () => {
     expect(parseCatbusLine(lines.chat)).toMatchObject({
       platform: 'xiaohongshu',
       kind: 'chat',
-      user: '甜心',
+      user: '观众乙',
       text: '主播好呀',
     })
   })
@@ -25,7 +25,7 @@ describe('parseCatbusLine', () => {
   it('礼物带数量', () => {
     expect(parseCatbusLine(lines.gift)).toMatchObject({
       kind: 'gift',
-      user: '甜心',
+      user: '观众乙',
       text: '花',
       count: 3,
     })
@@ -52,7 +52,7 @@ describe('XiaohongshuDanmakuClient', () => {
     })
     const events: unknown[] = []
     const client = new XiaohongshuDanmakuClient({
-      roomId: '570548867313498219',
+      roomId: '700000000000000001',
       cookie: 'a1=x',
       onEvent: (event) => events.push(event),
       spawnImpl: vi.fn(() => child) as never,

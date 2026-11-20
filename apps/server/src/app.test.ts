@@ -92,7 +92,7 @@ describe('http', () => {
       payload: {
         platform: 'bilibili',
         kind: 'chat',
-        user: '苏苏花',
+        user: '观众甲',
         text: '来了老弟',
         at: '2026-11-20T10:00:00Z',
       },
@@ -103,7 +103,7 @@ describe('http', () => {
       payload: {
         platform: 'xiaohongshu',
         kind: 'gift',
-        user: '甜心',
+        user: '观众乙',
         text: '花',
         count: 3,
         at: '2026-11-20T10:00:01Z',
@@ -111,8 +111,8 @@ describe('http', () => {
     })
 
     const messages = logs.recent().map((entry) => `${entry.scope}|${entry.message}`)
-    expect(messages).toContain('B站|苏苏花：来了老弟')
-    expect(messages).toContain('小红书|甜心 送出 花 ×3')
+    expect(messages).toContain('B站|观众甲：来了老弟')
+    expect(messages).toContain('小红书|观众乙 送出 花 ×3')
     await app.close()
   })
 
@@ -132,8 +132,8 @@ describe('http', () => {
     const accounts = new AccountsStore({ dir })
     accounts.signIn({
       platform: 'bilibili',
-      displayName: '丘野Pixel',
-      externalId: '31455973',
+      displayName: '示例主播',
+      externalId: '10010001',
       secret: { sessdata: 'secret-value' },
     })
     const app = buildApp({ accounts })
@@ -141,7 +141,7 @@ describe('http', () => {
     const list = await app.inject({ method: 'GET', url: '/api/accounts' })
     expect(list.body).not.toContain('secret-value')
     const parsed = list.json() as { accounts: Array<{ displayName: string }> }
-    expect(parsed.accounts[0]?.displayName).toBe('丘野Pixel')
+    expect(parsed.accounts[0]?.displayName).toBe('示例主播')
 
     const logout = await app.inject({ method: 'POST', url: '/api/accounts/bilibili/logout' })
     expect(logout.statusCode).toBe(200)

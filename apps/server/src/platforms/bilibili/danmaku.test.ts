@@ -8,13 +8,13 @@ describe('parseCommand', () => {
 
   it('弹幕取 info[1] 与 info[2][1]', () => {
     const event = parseCommand(
-      { cmd: 'DANMU_MSG', info: [[0], '来了老弟', [12345, '苏苏花'], []] },
+      { cmd: 'DANMU_MSG', info: [[0], '来了老弟', [12345, '观众甲'], []] },
       at,
     )
     expect(event).toEqual({
       platform: 'bilibili',
       kind: 'chat',
-      user: '苏苏花',
+      user: '观众甲',
       text: '来了老弟',
       count: 0,
       at,
@@ -23,10 +23,10 @@ describe('parseCommand', () => {
 
   it('礼物带数量', () => {
     const event = parseCommand(
-      { cmd: 'SEND_GIFT', data: { uname: '苏苏花', giftName: '辣条', num: 3, total_coin: 300 } },
+      { cmd: 'SEND_GIFT', data: { uname: '观众甲', giftName: '辣条', num: 3, total_coin: 300 } },
       at,
     )
-    expect(event).toMatchObject({ kind: 'gift', user: '苏苏花', text: '辣条', count: 3 })
+    expect(event).toMatchObject({ kind: 'gift', user: '观众甲', text: '辣条', count: 3 })
   })
 
   it('舰长按等级映射名字', () => {

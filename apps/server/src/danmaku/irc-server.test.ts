@@ -50,7 +50,7 @@ async function setup(): Promise<{
   return { irc, received, send, waitFor }
 }
 
-const chat = (text: string, user = '苏苏花'): DanmakuEvent => ({
+const chat = (text: string, user = '观众甲'): DanmakuEvent => ({
   platform: 'bilibili',
   kind: 'chat',
   user,
@@ -126,7 +126,7 @@ describe('IrcServer', () => {
     await waitFor((lines) => lines.some((line) => line.includes('366')))
 
     irc.broadcast({
-      ...chat('', '甜心'),
+      ...chat('', '观众乙'),
       platform: 'xiaohongshu',
       kind: 'gift',
       text: '花',

@@ -25,7 +25,7 @@ function fakeFetch(bodies: Record<string, unknown>) {
 describe('BilibiliLive', () => {
   it('按顺序拿房间号、时间、版本，最后返回推流地址', async () => {
     const { impl, calls } = fakeFetch({
-      room_id_by_uid: { code: 0, data: { room_id: 31455973 } },
+      room_id_by_uid: { code: 0, data: { room_id: 10010001 } },
       'click/now': { code: 0, data: { now: 1700000000 } },
       getHomePageLiveVersion: { code: 0, data: { build: 1, curr_version: '1.0' } },
       startLive: {
