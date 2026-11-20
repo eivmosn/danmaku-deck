@@ -224,8 +224,33 @@ async function createPullRequest(action) {
     const path = `/tmp/ai-${ISSUE_NUMBER}.patch`
     writeFileSync(path, action.patch.endsWith('\n') ? action.patch : `${action.patch}\n`)
 
+    // 模型几乎不可能把 @@ 的行号写对，--recount 让 git 自己重数；再失败就用 patch 的模糊匹配兜底
+    console.log('--- patch 前 40 行 ---')
+    console.log(action.patch.split('\n').slice(0, 40).join('\n'))
+    console.log('--- patch 结束 ---')
+
     execSync(`git checkout -B ${branch}`, { stdio: 'inherit' })
-    execSync(`git apply --index --whitespace=nowarn ${path}`, { stdio: 'inherit' })
+    const attempts = [
+      `git apply --index --recount --whitespace=nowarn ${path}`,
+      `git apply --index --recount --unidiff-zero --whitespace=nowarn ${path}`,
+      `patch -p1 --forward --fuzz=3 --no-backup-if-mismatch -i ${path}`,
+      `patch -p1 --forward --fuzz=3 --no-backup-if-mismatch --ignore-whitespace -i ${path}`,
+    ]
+    let applied = false
+    let lastError = ''
+    for (const command of attempts) {
+      try {
+        execSync(command, { stdio: 'inherit' })
+        applied = true
+        break
+      } catch (error) {
+        lastError = error.message
+      }
+    }
+    if (!applied) {
+      throw new Error(`补丁无法应用（模型给的 diff 与文件不匹配）：${lastError}`)
+    }
+    execSync('git add -A', { stdio: 'inherit' })
     execSync(
       'git -c user.name="deepseek-agent" -c user.email="actions@github.com" commit -m ' +
         JSON.stringify(`${title}\n\nDeepSeek 助手根据 #${ISSUE_NUMBER} 生成`),
