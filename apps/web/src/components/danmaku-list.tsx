@@ -9,7 +9,6 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/cn'
 
 const KIND_META: Record<string, { icon: LucideIcon; className: string }> = {
@@ -37,34 +36,34 @@ export function DanmakuList({ items, empty = '还没有弹幕', className }: Dan
   }
 
   return (
-    <ScrollArea className={className}>
-      <ul className="flex flex-col gap-1 pr-2">
-        {items.map((item, index) => {
-          const meta = KIND_META[item.kind]
-          const Icon = meta?.icon ?? MessageSquare
-          const brand = item.platform === 'bilibili' ? 'var(--bilibili)' : 'var(--xiaohongshu)'
-          return (
-            <li
-              key={`${item.at}-${item.user}-${index}`}
-              className="flex items-start gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--accent)]"
-            >
-              <span
-                className="mt-1.5 size-1.5 shrink-0 rounded-full"
-                style={{ background: brand }}
-              />
-              <div className="min-w-0">
-                <span className="text-[11px] text-[var(--muted-foreground)]">{item.user}</span>
-                <p className="flex items-center gap-1.5 truncate text-sm text-[var(--foreground)]">
-                  <Icon size={13} strokeWidth={2} className={cn('shrink-0', meta?.className)} />
-                  {item.kind === 'gift' && item.count > 1
-                    ? `送出 ${item.text} ×${item.count}`
-                    : item.text}
-                </p>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-    </ScrollArea>
+    <ul className={cn('flex flex-col gap-0.5', className)}>
+      {items.map((item, index) => {
+        const meta = KIND_META[item.kind]
+        const Icon = meta?.icon ?? MessageSquare
+        const brand = item.platform === 'bilibili' ? 'var(--bilibili)' : 'var(--xiaohongshu)'
+        return (
+          <li
+            key={`${item.at}-${item.user}-${index}`}
+            className="flex items-baseline gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--accent)]"
+          >
+            <span
+              className="size-1.5 shrink-0 translate-y-[-2px] rounded-full"
+              style={{ background: brand }}
+            />
+            <span className="shrink-0 text-[11px] text-[var(--muted-foreground)]">{item.user}</span>
+            <Icon
+              size={13}
+              strokeWidth={2}
+              className={cn('shrink-0 translate-y-[2px]', meta?.className)}
+            />
+            <span className="min-w-0 flex-1 text-sm text-[var(--foreground)]">
+              {item.kind === 'gift' && item.count > 1
+                ? `送出 ${item.text} ×${item.count}`
+                : item.text}
+            </span>
+          </li>
+        )
+      })}
+    </ul>
   )
 }

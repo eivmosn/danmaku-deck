@@ -18,8 +18,9 @@ export function DanmakuPage() {
   const items = filter === 'all' ? danmaku : danmaku.filter((item) => item.platform === filter)
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <header className="flex items-end justify-between">
+    <div className="flex flex-col gap-4">
+      {/* 吸顶：滚动时标题和筛选一直可见；负边距抵消 main 的 padding，背景铺满 */}
+      <header className="sticky top-0 z-10 -mx-5 flex items-end justify-between gap-3 bg-background/85 px-5 py-3 backdrop-blur md:-mx-7 md:px-7">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">弹幕</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
@@ -45,13 +46,13 @@ export function DanmakuPage() {
         </div>
       </header>
 
-      <Card className="flex min-h-0 flex-1 flex-col">
+      <Card className="flex flex-col">
         <CardHeader>
           <CardTitle className="text-sm">实时时间线</CardTitle>
           <span className="text-[11px] text-[var(--muted-foreground)]">{items.length} 条</span>
         </CardHeader>
-        <CardContent className="min-h-0 flex-1">
-          <DanmakuList items={items} className="h-full" empty="等 PS5 开播后出现" />
+        <CardContent>
+          <DanmakuList items={items} empty="等 PS5 开播后出现" />
         </CardContent>
       </Card>
     </div>
