@@ -11,58 +11,56 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { NavLink, Outlet } from 'react-router'
 import { PlayStationLogo } from '@/components/brand-logos'
 import { cn } from '@/lib/cn'
 import { useThemeStore } from '@/stores/theme'
 
-export type PageKey = 'dashboard' | 'danmaku' | 'logs' | 'settings'
-
-const NAV: Array<{ key: PageKey; label: string; icon: LucideIcon }> = [
-  { key: 'dashboard', label: '概览', icon: LayoutDashboard },
-  { key: 'danmaku', label: '弹幕', icon: MessagesSquare },
-  { key: 'logs', label: '日志', icon: ScrollText },
-  { key: 'settings', label: '设置', icon: Settings },
+const NAV: Array<{ to: string; label: string; icon: LucideIcon }> = [
+  { to: '/', label: '概览', icon: LayoutDashboard },
+  { to: '/danmaku', label: '弹幕', icon: MessagesSquare },
+  { to: '/logs', label: '日志', icon: ScrollText },
+  { to: '/settings', label: '设置', icon: Settings },
 ]
 
 const storage = useStorage({ prefix: 'ps5lb.', type: 'localStorage' })
 
 interface AppShellProps {
-  page: PageKey
-  onNavigate: (page: PageKey) => void
   live: boolean
-  children: ReactNode
 }
 
-interface RailButtonProps {
-  icon: ReactNode
+const RAIL_CLASS = (collapsed: boolean, active: boolean): string =>
+  cn(
+    'flex h-10 items-center rounded-xl transition-colors duration-200',
+    collapsed ? 'mx-auto w-10 justify-center' : 'w-full gap-3 px-3',
+    active
+      ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
+      : 'text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]',
+  )
+
+interface RailItemProps {
+  to: string
   label: string
   collapsed: boolean
-  active?: boolean
-  onClick: () => void
+  icon: ReactNode
 }
 
 /** 收起时固定 40×40 居中，展开时整行左对齐 —— 两种状态各自对称 */
-function RailButton({ icon, label, collapsed, active, onClick }: RailButtonProps) {
+function RailItem({ to, label, collapsed, icon }: RailItemProps) {
   return (
-    <button
-      type="button"
+    <NavLink
+      end={to === '/'}
+      to={to}
       title={label}
-      onClick={onClick}
-      className={cn(
-        'flex h-10 items-center rounded-xl transition-colors duration-200',
-        collapsed ? 'mx-auto w-10 justify-center' : 'w-full gap-3 px-3',
-        active
-          ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
-          : 'text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]',
-      )}
+      className={({ isActive }) => RAIL_CLASS(collapsed, isActive)}
     >
       {icon}
       {collapsed ? null : <span className="whitespace-nowrap text-sm font-medium">{label}</span>}
-    </button>
+    </NavLink>
   )
 }
 
-export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
+export function AppShell({ live }: AppShellProps) {
   const { mode, toggle: toggleTheme } = useThemeStore()
   const [collapsed, setCollapsedState] = useState<boolean>(() => {
     const forced = new URLSearchParams(window.location.search).get('sidebar')
@@ -107,43 +105,50 @@ export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
           {NAV.map((item) => {
             const Icon = item.icon
             return (
-              <RailButton
-                key={item.key}
+              <RailItem
+                key={item.to}
+                to={item.to}
                 collapsed={collapsed}
-                active={item.key === page}
                 label={item.label}
                 icon={<Icon size={18} strokeWidth={1.9} className="shrink-0" />}
-                onClick={() => onNavigate(item.key)}
               />
             )
           })}
         </nav>
 
         <div className="flex flex-col gap-1 border-t border-[var(--color-border)] p-2">
-          <RailButton
-            collapsed={collapsed}
-            label={collapsed ? '展开侧边栏' : '收起侧边栏'}
-            icon={
-              collapsed ? (
-                <PanelLeftOpen size={18} className="shrink-0" />
-              ) : (
-                <PanelLeftClose size={18} className="shrink-0" />
-              )
-            }
+          <button
+            type="button"
+            title={collapsed ? '展开侧边栏' : '收起侧边栏'}
             onClick={() => setCollapsed(!collapsed)}
-          />
-          <RailButton
-            collapsed={collapsed}
-            label={mode === 'dark' ? '浅色模式' : '深色模式'}
-            icon={
-              mode === 'dark' ? (
-                <Sun size={18} className="shrink-0" />
-              ) : (
-                <Moon size={18} className="shrink-0" />
-              )
-            }
+            className={RAIL_CLASS(collapsed, false)}
+          >
+            {collapsed ? (
+              <PanelLeftOpen size={18} className="shrink-0" />
+            ) : (
+              <PanelLeftClose size={18} className="shrink-0" />
+            )}
+            {collapsed ? null : (
+              <span className="whitespace-nowrap text-sm font-medium">收起侧边栏</span>
+            )}
+          </button>
+          <button
+            type="button"
+            title="切换主题"
             onClick={toggleTheme}
-          />
+            className={RAIL_CLASS(collapsed, false)}
+          >
+            {mode === 'dark' ? (
+              <Sun size={18} className="shrink-0" />
+            ) : (
+              <Moon size={18} className="shrink-0" />
+            )}
+            {collapsed ? null : (
+              <span className="whitespace-nowrap text-sm font-medium">
+                {mode === 'dark' ? '浅色模式' : '深色模式'}
+              </span>
+            )}
+          </button>
           <div
             className={cn(
               'flex h-9 items-center text-[11px] text-[var(--color-muted)]',
@@ -170,20 +175,22 @@ export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
           {NAV.map((item) => {
             const Icon = item.icon
             return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => onNavigate(item.key)}
-                className={cn(
-                  'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm',
-                  item.key === page
-                    ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
-                    : 'text-[var(--color-muted)]',
-                )}
+              <NavLink
+                key={item.to}
+                end={item.to === '/'}
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm',
+                    isActive
+                      ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
+                      : 'text-[var(--color-muted)]',
+                  )
+                }
               >
                 <Icon size={16} />
                 {item.label}
-              </button>
+              </NavLink>
             )
           })}
           <button
@@ -196,7 +203,9 @@ export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
           </button>
         </nav>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 p-5 md:p-7">{children}</main>
+        <main className="mx-auto w-full max-w-5xl flex-1 p-5 md:p-7">
+          <Outlet />
+        </main>
       </div>
     </div>
   )

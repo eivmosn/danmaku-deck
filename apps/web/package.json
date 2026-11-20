@@ -14,8 +14,10 @@
     "@eivmosn/utils": "^1.0.0",
     "@ps5lb/shared": "workspace:*",
     "lucide-react": "^1.76.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-router": "^8.5.2",
     "zustand": "^5.1.0"
   },
   "devDependencies": {

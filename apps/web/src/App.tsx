@@ -1,6 +1,7 @@
 import type { DanmakuEvent, Status } from '@ps5lb/shared'
-import { useEffect, useState } from 'react'
-import { AppShell, type PageKey } from '@/components/app-shell'
+import { useEffect } from 'react'
+import { Navigate, Route, Routes } from 'react-router'
+import { AppShell } from '@/components/app-shell'
 import { useEventStream } from '@/lib/sse'
 import type { LogEntry } from '@/lib/types'
 import { DashboardPage } from '@/pages/dashboard'
@@ -9,18 +10,9 @@ import { LogsPage } from '@/pages/logs'
 import { SettingsPage } from '@/pages/settings'
 import { useLiveStore } from '@/stores/live'
 
-const PAGES: PageKey[] = ['dashboard', 'danmaku', 'logs', 'settings']
-
-function initialPage(): PageKey {
-  const value = new URLSearchParams(window.location.search).get('page')
-  return PAGES.find((item) => item === value) ?? 'dashboard'
-}
-
 export function App() {
-  const [page, setPage] = useState<PageKey>(initialPage)
   const { status, refresh, applyStatus, pushDanmaku, pushLog } = useLiveStore()
 
-  // 首屏拉一次，之后靠 SSE
   useEffect(() => {
     void refresh()
   }, [refresh])
@@ -30,11 +22,14 @@ export function App() {
   useEventStream<LogEntry>('/api/logs/stream', pushLog)
 
   return (
-    <AppShell page={page} onNavigate={setPage} live={status?.state === 'live'}>
-      {page === 'dashboard' ? <DashboardPage onOpenLogs={() => setPage('logs')} /> : null}
-      {page === 'danmaku' ? <DanmakuPage /> : null}
-      {page === 'logs' ? <LogsPage /> : null}
-      {page === 'settings' ? <SettingsPage /> : null}
-    </AppShell>
+    <Routes>
+      <Route element={<AppShell live={status?.state === 'live'} />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="danmaku" element={<DanmakuPage />} />
+        <Route path="logs" element={<LogsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   )
 }

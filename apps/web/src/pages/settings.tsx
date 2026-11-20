@@ -1,8 +1,8 @@
+import { BilibiliLogin } from '@/components/bilibili-login'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLiveStore } from '@/stores/live'
 
 const PENDING: Array<{ title: string; desc: string; stage: string }> = [
-  { title: 'B 站账号', desc: '扫码登录、直播间信息、开播开关', stage: 'P2' },
   { title: '小红书账号', desc: 'Cookie 维护、开播码、直播间号', stage: 'P2' },
   { title: '直播信息', desc: '标题与分区（B 站开放接口）', stage: 'P3' },
   { title: 'Twitch 代理', desc: '节点状态、切换、订阅更新', stage: 'P4' },
@@ -11,6 +11,8 @@ const PENDING: Array<{ title: string; desc: string; stage: string }> = [
 
 export function SettingsPage() {
   const serverUrl = useLiveStore((state) => state.serverUrl)
+  const status = useLiveStore((state) => state.status)
+  const bilibili = status?.platforms.find((item) => item.platform === 'bilibili')
 
   return (
     <div className="flex flex-col gap-4">
@@ -24,6 +26,18 @@ export function SettingsPage() {
           <CardTitle className="text-sm">服务地址</CardTitle>
         </CardHeader>
         <CardContent className="font-mono text-xs text-[var(--color-fg)]">{serverUrl}</CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">哔哩哔哩账号</CardTitle>
+          <span className="text-[11px] text-[var(--color-muted)]">
+            {bilibili?.accountName ?? '未登录'}
+          </span>
+        </CardHeader>
+        <CardContent>
+          <BilibiliLogin />
+        </CardContent>
       </Card>
 
       <Card>

@@ -4,11 +4,11 @@ import { StatCard } from '@/components/stat-card'
 import { DanmakuList } from '@/components/danmaku-list'
 import { LogList } from '@/components/log-list'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Link } from 'react-router'
 import { useLiveStore } from '@/stores/live'
 import { formatUptime, STATE_TEXT } from '@/lib/format'
 
-export function DashboardPage({ onOpenLogs }: { onOpenLogs: () => void }) {
+export function DashboardPage() {
   const { status, danmaku, logs, toggle } = useLiveStore()
   const live = status?.state === 'live'
 
@@ -85,9 +85,12 @@ export function DashboardPage({ onOpenLogs }: { onOpenLogs: () => void }) {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">实时日志</CardTitle>
-            <Button variant="ghost" size="sm" onClick={onOpenLogs}>
+            <Link
+              to="/logs"
+              className="text-[11px] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+            >
               全部
-            </Button>
+            </Link>
           </CardHeader>
           <CardContent>
             <LogList entries={logs.slice(-10)} className="max-h-64" />
