@@ -12,7 +12,9 @@ import { registerHookRoutes } from '@/http/hooks'
 import { registerLogRoutes } from '@/http/logs'
 import { registerPlatformRoutes } from '@/http/platforms'
 import { registerPushRoutes } from '@/http/push'
+import { registerProxyRoutes } from '@/http/proxy'
 import { registerXiaohongshuRoutes } from '@/http/xiaohongshu'
+import { MihomoClient } from '@/network/mihomo'
 import { XiaohongshuApi } from '@/platforms/xiaohongshu/api'
 import { PushTargetsStore } from '@/push/targets-store'
 import { registerStatusRoutes } from '@/http/status'
@@ -30,6 +32,8 @@ export interface BuildAppOptions {
   bilibiliAuth?: BilibiliAuthPort
   pushTargets?: PushTargetsStore
   xiaohongshu?: XiaohongshuApi
+  mihomo?: MihomoClient
+  proxyConfig?: { configPath: string; writePath: string }
 }
 
 /** 组装 Fastify 实例，便于测试注入 */
@@ -49,6 +53,13 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerPlatformRoutes(app, orchestrator)
   registerAccountRoutes(app, accounts, orchestrator, logs)
   registerPushRoutes(app, pushTargets, logs)
+  registerProxyRoutes(app, {
+    mihomo: options.mihomo ?? new MihomoClient(),
+    logs,
+    configPath: options.proxyConfig?.configPath ?? '/root/.config/mihomo/config.yaml',
+    writePath: options.proxyConfig?.writePath ?? './conf/mihomo.yaml',
+  })
+
   registerXiaohongshuRoutes(app, {
     api: options.xiaohongshu ?? new XiaohongshuApi(),
     accounts,

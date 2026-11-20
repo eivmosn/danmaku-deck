@@ -9,6 +9,8 @@ import { Orchestrator } from '@/orchestrator'
 import { IrcServer } from '@/danmaku/irc-server'
 import { BilibiliLive } from '@/platforms/bilibili/live'
 import { DnsServer } from '@/network/dns'
+import { SniRelay } from '@/network/relay'
+import { MihomoClient } from '@/network/mihomo'
 import { PushService } from '@/push/push-service'
 import { PushTargetsStore } from '@/push/targets-store'
 import { DanmakuService } from '@/services/danmaku-service'
@@ -28,6 +30,14 @@ const app = buildApp({
   pushTargets,
   logger: config.logLevel !== 'fatal',
   webDir,
+  mihomo: new MihomoClient({
+    baseUrl: config.mihomoUrl,
+    group: config.mihomoGroup,
+  }),
+  proxyConfig: {
+    configPath: '/root/.config/mihomo/config.yaml',
+    writePath: process.env.PS5LB_MIHOMO_CONF ?? './conf/mihomo.yaml',
+  },
 })
 
 // 收到的弹幕 / 礼物写进日志（Web 的日志页与 JSONL 都能看到）
@@ -74,6 +84,28 @@ const push = new PushService({
 push.start()
 
 // PS5 聊天窗口：连 irc.twitch.tv:IRC_PORT，收到的弹幕直接显示在屏幕
+// 内置 TLS 中继：开着就能替代 twitch-relay 容器
+let relay: SniRelay | null = null
+if (config.relayEnabled) {
+  relay = new SniRelay({
+    port: config.relayPort,
+    proxyDomains: ['twitch.tv', 'live-video.net', 'twitchcdn.net'],
+    proxy: { host: config.proxyHost, port: config.proxyPort },
+    onRoute: (host, viaProxy) => {
+      createLogger(logs, '代理').debug(`中继 ${host}`, { viaProxy })
+    },
+  })
+  try {
+    await relay.listen()
+    createLogger(logs, '系统').info('TLS 中继已启动', { port: config.relayPort })
+  } catch (error) {
+    createLogger(logs, '系统').error('TLS 中继启动失败', {
+      reason: error instanceof Error ? error.message : String(error),
+    })
+    relay = null
+  }
+}
+
 // 内置 DNS：默认关闭，开着就能替代 dnsmasq 容器
 let dns: DnsServer | null = null
 if (config.dnsEnabled) {
@@ -124,6 +156,7 @@ const shutdown = async (signal: string): Promise<void> => {
   push.stop()
   await irc.close()
   dns?.close()
+  await relay?.close()
   await app.close()
   process.exit(0)
 }

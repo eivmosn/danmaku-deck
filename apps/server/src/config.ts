@@ -15,6 +15,15 @@ export const configSchema = z.object({
   dnsHijackIp: z.string().default('127.0.0.1'),
   /** 关闭内置 DNS（比如继续用 dnsmasq） */
   dnsEnabled: z.coerce.boolean().default(false),
+  /** 内置 TLS 中继（替代 twitch-relay 容器） */
+  relayEnabled: z.coerce.boolean().default(false),
+  relayPort: z.coerce.number().int().positive().default(18443),
+  /** 代理地址与端口，mihomo 的混合端口 */
+  proxyHost: z.string().default('127.0.0.1'),
+  proxyPort: z.coerce.number().int().positive().default(7890),
+  /** mihomo 控制接口 */
+  mihomoUrl: z.string().default('http://127.0.0.1:9090'),
+  mihomoGroup: z.string().default('AUTO'),
 })
 
 export type Config = z.infer<typeof configSchema>
@@ -29,5 +38,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     dnsPort: env.PS5LB_DNS_PORT,
     dnsHijackIp: env.PS5LB_DNS_IP,
     dnsEnabled: env.PS5LB_DNS_ENABLED,
+    relayEnabled: env.PS5LB_RELAY_ENABLED,
+    relayPort: env.PS5LB_RELAY_PORT,
+    proxyHost: env.PS5LB_PROXY_HOST,
+    proxyPort: env.PS5LB_PROXY_PORT,
+    mihomoUrl: env.PS5LB_MIHOMO_URL,
+    mihomoGroup: env.PS5LB_MIHOMO_GROUP,
   })
 }
