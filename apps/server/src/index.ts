@@ -7,6 +7,7 @@ import { describe, levelFor } from '@/danmaku-format'
 import { createLogger, LogService } from '@/logger'
 import { Orchestrator } from '@/orchestrator'
 import { IrcServer } from '@/danmaku/irc-server'
+import { BilibiliLive } from '@/platforms/bilibili/live'
 import { PushService } from '@/push/push-service'
 import { PushTargetsStore } from '@/push/targets-store'
 import { DanmakuService } from '@/services/danmaku-service'
@@ -37,12 +38,36 @@ bus.subscribe((event) => {
 const danmaku = new DanmakuService({ orchestrator, accounts, bus, logs })
 danmaku.start()
 
+const bilibiliLive = new BilibiliLive()
+
+/** 自动调用 B 站开播接口；默认关闭，避免误开播 */
+const autoStartBilibili = process.env.PS5LB_AUTO_START_BILI === '1'
+
+function cookieOf(secret: Record<string, string>): string {
+  return Object.entries(secret)
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ')
+}
+
 const push = new PushService({
   orchestrator,
   accounts,
   logs,
   inputUrl: (path) => `rtmp://127.0.0.1:${config.rtmpPort}/${path}`,
-  resolveTarget: async (platform) => pushTargets.get(platform),
+  resolveTarget: async (platform) => {
+    const configured = pushTargets.get(platform)
+    if (configured) return configured
+    if (platform !== 'bilibili' || !autoStartBilibili) return null
+
+    const account = accounts.get('bilibili')
+    const secret = accounts.secret('bilibili')
+    if (!account || !secret) return null
+    return bilibiliLive.startLive({
+      uid: account.externalId,
+      cookie: cookieOf(secret),
+      csrf: secret.bili_jct ?? '',
+    })
+  },
 })
 push.start()
 
