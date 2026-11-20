@@ -6,10 +6,11 @@ import { createLogger, LogService } from './logger.js'
 
 const fixedClock = (): number => 1_700_000_000_000
 
-describe('LogService', () => {
-  const makeService = (capacity?: number): LogService =>
-    new LogService({ console: false, now: fixedClock, ...(capacity ? { capacity } : {}) })
+function makeService(capacity?: number): LogService {
+  return new LogService({ console: false, now: fixedClock, ...(capacity ? { capacity } : {}) })
+}
 
+describe('LogService', () => {
   it('写入后可查询，字段与作用域完整', () => {
     const logs = makeService()
     const bili = createLogger(logs, 'B站')
