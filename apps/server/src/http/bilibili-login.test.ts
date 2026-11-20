@@ -49,8 +49,7 @@ describe('B 站扫码登录接口', () => {
     const body = poll.json() as { ok: boolean; state: string; account: { id: string } }
 
     expect(body.state).toBe('success')
-    expect(accounts.list()).toHaveLength(1)
-    expect(accounts.active('bilibili')?.displayName).toBe('丘野Pixel')
+    expect(accounts.get('bilibili')?.displayName).toBe('丘野Pixel')
     expect(poll.body).not.toContain('secret-value')
 
     const status = await app.inject({ method: 'GET', url: '/api/status' })

@@ -68,7 +68,7 @@ export function registerBilibiliLoginRoutes(app: FastifyInstance, deps: Bilibili
 
       try {
         const profile = await deps.auth.profile(result.credentials)
-        const account = deps.accounts.add({
+        const account = deps.accounts.signIn({
           platform: 'bilibili',
           displayName: profile.name,
           externalId: profile.uid,

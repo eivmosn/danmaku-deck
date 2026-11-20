@@ -35,7 +35,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerLogRoutes(app, logs)
   registerEventRoutes(app, logs, bus)
   registerPlatformRoutes(app, orchestrator)
-  registerAccountRoutes(app, accounts)
+  registerAccountRoutes(app, accounts, orchestrator, logs)
   registerBilibiliLoginRoutes(app, {
     auth: options.bilibiliAuth ?? new BilibiliAuth(),
     accounts,

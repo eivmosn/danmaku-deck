@@ -10,67 +10,66 @@ function makeStore(): { store: AccountsStore; dir: string } {
 }
 
 describe('AccountsStore', () => {
-  it('新增账号后可以列出，凭证加密落盘', () => {
+  it('登录后能取到账号，凭证加密落盘', () => {
     const { store, dir } = makeStore()
-    const account = store.add({
+    store.signIn({
       platform: 'bilibili',
       displayName: '丘野Pixel',
       externalId: '31455973',
-      secret: { sessdata: 'abc123', biliJct: 'xyz' },
+      secret: { SESSDATA: 'secret-value' },
     })
 
-    expect(store.list()).toHaveLength(1)
-    expect(store.active('bilibili')?.displayName).toBe('丘野Pixel')
-    expect(store.secret(account.id)).toEqual({ sessdata: 'abc123', biliJct: 'xyz' })
+    expect(store.get('bilibili')?.displayName).toBe('丘野Pixel')
+    expect(store.secret('bilibili')).toEqual({ SESSDATA: 'secret-value' })
 
     const raw = readFileSync(join(dir, 'accounts.json'), 'utf8')
-    expect(raw).not.toContain('abc123')
-    expect(raw).toContain('.')
+    expect(raw).not.toContain('secret-value')
   })
 
-  it('切换账号只更新最近使用时间', () => {
+  it('再次登录会覆盖同一平台的账号（换号语义）', () => {
     const { store } = makeStore()
-    const first = store.add({
+    store.signIn({
       platform: 'xiaohongshu',
-      displayName: '一口吃掉甜心',
-      externalId: '6384be02',
+      displayName: '旧账号',
+      externalId: 'old',
       secret: { cookie: 'a1=1' },
     })
-    const second = store.add({
+    store.signIn({
       platform: 'xiaohongshu',
-      displayName: '小号',
-      externalId: 'aaaa',
+      displayName: '新账号',
+      externalId: 'new',
       secret: { cookie: 'a1=2' },
     })
 
-    expect(store.active('xiaohongshu')?.id).toBe(second.id)
-    const activated = store.activate('xiaohongshu', first.id)
-    expect(activated?.id).toBe(first.id)
-    expect(store.list()).toHaveLength(2)
+    expect(store.get('xiaohongshu')?.displayName).toBe('新账号')
+    expect(store.secret('xiaohongshu')).toEqual({ cookie: 'a1=2' })
+    expect(store.snapshot().filter(Boolean)).toHaveLength(1)
   })
 
-  it('删除账号会同时清掉凭证', () => {
+  it('退出登录会清掉账号与凭证', () => {
     const { store } = makeStore()
-    const account = store.add({
+    store.signIn({
       platform: 'bilibili',
       displayName: '测试',
       externalId: '1',
-      secret: { sessdata: 'abc' },
+      secret: { SESSDATA: 'abc' },
     })
 
-    expect(store.remove(account.id)).toBe(true)
-    expect(store.list()).toHaveLength(0)
-    expect(store.secret(account.id)).toBeNull()
+    expect(store.signOut('bilibili')).toBe(true)
+    expect(store.get('bilibili')).toBeNull()
+    expect(store.secret('bilibili')).toBeNull()
+    expect(store.signOut('bilibili')).toBe(false)
   })
 
-  it('平台隔离：拿不到另一个平台的激活账号', () => {
+  it('两个平台互不影响', () => {
     const { store } = makeStore()
-    store.add({
+    store.signIn({
       platform: 'bilibili',
       displayName: 'B 站号',
       externalId: '1',
-      secret: { sessdata: 'abc' },
+      secret: { SESSDATA: 'abc' },
     })
-    expect(store.active('xiaohongshu')).toBeNull()
+    expect(store.get('xiaohongshu')).toBeNull()
+    expect(store.snapshot().filter(Boolean)).toHaveLength(1)
   })
 })

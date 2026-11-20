@@ -4,40 +4,38 @@ import { dirname, join } from 'node:path'
 import type { Platform } from '@ps5lb/shared'
 import { z } from 'zod'
 
-/** 账号凭证：不同平台字段不同，统一用键值对存 */
 const credentialSchema = z.record(z.string(), z.string())
 
 export const accountSchema = z.object({
-  id: z.string().min(1),
   platform: z.enum(['bilibili', 'xiaohongshu']),
   displayName: z.string(),
   externalId: z.string(),
-  createdAt: z.string(),
-  lastUsedAt: z.string().optional(),
+  loggedInAt: z.string(),
 })
 
 export type Account = z.infer<typeof accountSchema>
 export type Credential = z.infer<typeof credentialSchema>
 
+/**
+ * 每个平台只保留一个登录态。
+ * 换号 = 先退出再登录，不维护账号列表。
+ */
 const fileSchema = z.object({
-  version: z.literal(1),
-  accounts: z.array(accountSchema),
-  /** accountId → 加密后的凭证（base64） */
-  secrets: z.record(z.string(), z.string()),
+  version: z.literal(2),
+  accounts: z.record(z.string(), accountSchema).default({}),
+  /** platform → 加密后的凭证（base64） */
+  secrets: z.record(z.string(), z.string()).default({}),
 })
 
 interface AccountFile {
-  version: 1
-  accounts: Account[]
+  version: 2
+  accounts: Record<string, Account>
   secrets: Record<string, string>
 }
 
 const ALGORITHM = 'aes-256-gcm'
+const PLATFORMS: Platform[] = ['bilibili', 'xiaohongshu']
 
-/**
- * 多账号存储：元信息明文，凭证 AES-256-GCM 加密。
- * 密钥文件与数据文件都放 0600，默认在 ~/.ps5lb 下。
- */
 export class AccountsStore {
   private readonly dataPath: string
   private readonly keyPath: string
@@ -49,53 +47,43 @@ export class AccountsStore {
     this.keyPath = join(dir, 'accounts.key')
   }
 
-  list(): Account[] {
-    return this.read().accounts
+  /** 当前登录的账号（没有则 null） */
+  get(platform: Platform): Account | null {
+    return this.read().accounts[platform] ?? null
   }
 
-  /** 当前激活的账号：每个平台最多一个 */
-  active(platform: Platform): Account | null {
-    const accounts = this.list().filter((item) => item.platform === platform)
-    if (accounts.length === 0) return null
-    return accounts.reduce((latest, item) =>
-      (item.lastUsedAt ?? '') > (latest.lastUsedAt ?? '') ? item : latest,
-    )
-  }
-
-  add(input: {
+  /** 登录或更换账号：直接覆盖该平台的登录态 */
+  signIn(input: {
     platform: Platform
     displayName: string
     externalId: string
     secret: Credential
   }): Account {
     const data = this.read()
-    const now = new Date().toISOString()
     const account: Account = {
-      id: randomBytes(8).toString('hex'),
       platform: input.platform,
       displayName: input.displayName,
       externalId: input.externalId,
-      createdAt: now,
-      lastUsedAt: now,
+      loggedInAt: new Date().toISOString(),
     }
-    data.accounts.push(account)
-    data.secrets[account.id] = this.encrypt(JSON.stringify(input.secret))
+    data.accounts[input.platform] = account
+    data.secrets[input.platform] = this.encrypt(JSON.stringify(input.secret))
     this.write(data)
     return account
   }
 
-  /** 切换激活账号：写 lastUsedAt，返回账号 */
-  activate(platform: Platform, id: string): Account | null {
+  /** 退出登录：清掉账号与凭证 */
+  signOut(platform: Platform): boolean {
     const data = this.read()
-    const account = data.accounts.find((item) => item.id === id && item.platform === platform)
-    if (!account) return null
-    account.lastUsedAt = new Date().toISOString()
+    if (!data.accounts[platform]) return false
+    delete data.accounts[platform]
+    delete data.secrets[platform]
     this.write(data)
-    return account
+    return true
   }
 
-  secret(id: string): Credential | null {
-    const raw = this.read().secrets[id]
+  secret(platform: Platform): Credential | null {
+    const raw = this.read().secrets[platform]
     if (!raw) return null
     try {
       return credentialSchema.parse(JSON.parse(this.decrypt(raw)))
@@ -104,20 +92,15 @@ export class AccountsStore {
     }
   }
 
-  remove(id: string): boolean {
-    const data = this.read()
-    const before = data.accounts.length
-    data.accounts = data.accounts.filter((item) => item.id !== id)
-    delete data.secrets[id]
-    if (data.accounts.length === before) return false
-    this.write(data)
-    return true
+  /** 一次性拿到所有平台的登录态，接口用 */
+  snapshot(): Array<Account | null> {
+    return PLATFORMS.map((platform) => this.get(platform))
   }
 
   private read(): AccountFile {
     if (this.cache) return this.cache
     if (!existsSync(this.dataPath)) {
-      this.cache = { version: 1, accounts: [], secrets: {} }
+      this.cache = { version: 2, accounts: {}, secrets: {} }
       return this.cache
     }
     const parsed = fileSchema.parse(JSON.parse(readFileSync(this.dataPath, 'utf8')))
@@ -136,8 +119,7 @@ export class AccountsStore {
       mkdirSync(dirname(this.keyPath), { recursive: true, mode: 0o700 })
       writeFileSync(this.keyPath, randomBytes(32).toString('hex'), { mode: 0o600 })
     }
-    const raw = readFileSync(this.keyPath, 'utf8').trim()
-    return scryptSync(raw, 'ps5lb-accounts', 32)
+    return scryptSync(readFileSync(this.keyPath, 'utf8').trim(), 'ps5lb-accounts', 32)
   }
 
   private encrypt(plain: string): string {

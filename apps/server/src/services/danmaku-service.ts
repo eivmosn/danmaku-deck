@@ -47,7 +47,7 @@ export class DanmakuService {
 
   private async sync(status: Status): Promise<void> {
     const platform = status.platforms.find((item) => item.platform === 'bilibili')
-    const account = this.deps.accounts.active('bilibili')
+    const account = this.deps.accounts.get('bilibili')
     const shouldRun = status.state === 'live' && Boolean(platform?.enabled) && account !== null
 
     if (!shouldRun) {
@@ -56,7 +56,7 @@ export class DanmakuService {
     }
     if (this.client || this.starting) return
 
-    const credentials = this.deps.accounts.secret(account.id) ?? {}
+    const credentials = this.deps.accounts.secret('bilibili') ?? {}
     const cookie = Object.entries(credentials)
       .map(([name, value]) => `${name}=${value}`)
       .join('; ')

@@ -20,7 +20,7 @@ interface PollResponse {
   error?: string
 }
 
-export function BilibiliLogin() {
+export function BilibiliLogin({ loggedIn }: { loggedIn: boolean }) {
   const refresh = useLiveStore((state) => state.refresh)
   const [phase, setPhase] = useState<Phase>('idle')
   const [url, setUrl] = useState('')
@@ -112,7 +112,7 @@ export function BilibiliLogin() {
           disabled={phase === 'loading'}
         >
           {url ? <RotateCw size={14} /> : <QrCode size={14} />}
-          {url ? '重新生成' : phase === 'loading' ? '生成中…' : '扫码登录'}
+          {url ? '重新生成' : phase === 'loading' ? '生成中…' : loggedIn ? '更换账号' : '扫码登录'}
         </Button>
       </div>
     </div>

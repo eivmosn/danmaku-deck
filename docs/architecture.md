@@ -89,39 +89,15 @@ idle ──检测到 PS5 推流──> starting ──推流就绪──> live �
 
 ---
 
-## 3. 多账号设计
+## 3. 账号设计
 
-### 3.1 数据模型
+每个平台**只保留一个登录态**，不维护账号列表：
 
-```ts
-type Platform = 'bilibili' | 'xiaohongshu'
+- 登录：扫码 / Cookie，登录即覆盖该平台当前账号
+- 退出：清掉账号与凭证，界面上昵称清空
+- 更换：退出后用另一个账号登录即可
 
-interface Account {
-  id: string // uuid
-  platform: Platform
-  displayName: string // 昵称
-  externalId: string // uid / 小红书 id
-  credentials: EncryptedBlob
-  createdAt: string
-  lastUsedAt?: string
-}
-```
-
-### 3.2 切换语义
-
-- `POST /api/accounts/:platform/:id/activate`
-- 只允许**空闲时**切换（直播中返回 409，避免推流中断）
-- 切换后：重建该平台的弹幕连接、刷新推流凭证、广播状态
-
-### 3.3 凭证存储
-
-- 文件 `~/.ps5lb/credentials.json`，权限 `0600`
-- 用 `AES-256-GCM` 加密，主密钥在 `~/.ps5lb/master.key`（`0600`，首次启动生成）
-- API 永不返回明文，只返回「已配置/有效期」
-
-> 注意：当前 B 站 cookie 由 ps5lb 持有，我们拿不到写入权。这也是要退役 ps5lb 的原因之一。
-
----
+凭证用 AES-256-GCM 加密存在 `~/.ps5lb/accounts.json`，主密钥在 `accounts.key`，两者权限 `0600`；任何接口都不返回明文。
 
 ## 4. 前端
 

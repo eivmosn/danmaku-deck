@@ -1,4 +1,5 @@
 import { BilibiliLogin } from '@/components/bilibili-login'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLiveStore } from '@/stores/live'
 
@@ -13,6 +14,7 @@ export function SettingsPage() {
   const serverUrl = useLiveStore((state) => state.serverUrl)
   const status = useLiveStore((state) => state.status)
   const bilibili = status?.platforms.find((item) => item.platform === 'bilibili')
+  const logout = useLiveStore((state) => state.logout)
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,8 +37,18 @@ export function SettingsPage() {
             {bilibili?.accountName ?? '未登录'}
           </span>
         </CardHeader>
-        <CardContent>
-          <BilibiliLogin />
+        <CardContent className="flex flex-col gap-3">
+          {bilibili?.accountName ? (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[var(--color-fg)]">{bilibili.accountName}</span>
+              <Button variant="ghost" size="sm" onClick={() => void logout('bilibili')}>
+                退出登录
+              </Button>
+            </div>
+          ) : (
+            <span className="text-xs text-[var(--color-muted)]">还没有登录</span>
+          )}
+          <BilibiliLogin loggedIn={Boolean(bilibili?.accountName)} />
         </CardContent>
       </Card>
 

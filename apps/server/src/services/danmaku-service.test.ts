@@ -15,7 +15,7 @@ function setup(withAccount = true) {
   const dir = mkdtempSync(join(tmpdir(), 'ps5lb-ds-'))
   const accounts = new AccountsStore({ dir })
   if (withAccount) {
-    accounts.add({
+    accounts.signIn({
       platform: 'bilibili',
       displayName: '丘野Pixel',
       externalId: '31455973',

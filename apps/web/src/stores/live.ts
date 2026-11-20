@@ -16,6 +16,7 @@ interface LiveStore {
   pushDanmaku: (event: DanmakuEvent) => void
   pushLog: (entry: LogEntry) => void
   toggle: (platform: Platform, enabled: boolean) => Promise<void>
+  logout: (platform: Platform) => Promise<void>
   serverUrl: string
   setServerUrl: (url: string) => void
 }
@@ -61,6 +62,15 @@ export const useLiveStore = create<LiveStore>((set, get) => ({
     const current = get().logs
     const next = [...current, entry]
     set({ logs: next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next })
+  },
+
+  logout: async (platform) => {
+    const response = await fetch(`/api/accounts/${platform}/logout`, { method: 'POST' })
+    if (!response.ok && response.status !== 404) {
+      set({ error: `退出登录失败（${response.status}）` })
+      return
+    }
+    await get().refresh()
   },
 
   toggle: async (platform, enabled) => {

@@ -1,51 +1,41 @@
 import { platformSchema } from '@ps5lb/shared'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { z } from 'zod'
 import type { AccountsStore } from '@/accounts/store'
+import type { LogService } from '@/logger'
+import type { Orchestrator } from '@/orchestrator'
 
-const paramsSchema = z.object({
-  platform: platformSchema,
-  id: z.string().min(1),
-})
+const PLATFORM_LABEL = { bilibili: 'B站', xiaohongshu: '小红书' } as const
 
-export function registerAccountRoutes(app: FastifyInstance, store: AccountsStore): void {
+export function registerAccountRoutes(
+  app: FastifyInstance,
+  store: AccountsStore,
+  orchestrator: Orchestrator,
+  logs: LogService,
+): void {
   app.get('/api/accounts', async () => {
-    const activeIds = new Set([store.active('bilibili')?.id, store.active('xiaohongshu')?.id])
-    const accounts = store.list().map((account) => ({
-      id: account.id,
-      platform: account.platform,
-      displayName: account.displayName,
-      externalId: account.externalId,
-      createdAt: account.createdAt,
-      lastUsedAt: account.lastUsedAt ?? null,
-      active: activeIds.has(account.id),
-    }))
-    return { ok: true, accounts }
+    const accounts = store.snapshot()
+    return {
+      ok: true,
+      accounts: accounts.filter((account) => account !== null),
+    }
   })
 
+  // 退出登录：清掉该平台登录态，同时把界面上的昵称清空
   app.post(
-    '/api/accounts/:platform/:id/activate',
+    '/api/accounts/:platform/logout',
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const parsed = paramsSchema.safeParse(request.params)
+      const parsed = platformSchema.safeParse((request.params as { platform?: string }).platform)
       if (!parsed.success) {
         reply.code(400)
-        return { ok: false, error: '参数不正确' }
+        return { ok: false, error: '平台不正确' }
       }
-      const account = store.activate(parsed.data.platform, parsed.data.id)
-      if (!account) {
+      if (!store.signOut(parsed.data)) {
         reply.code(404)
-        return { ok: false, error: '账号不存在' }
+        return { ok: false, error: '当前没有登录' }
       }
-      return { ok: true, account }
+      orchestrator.setPlatform(parsed.data, { accountName: null })
+      logs.write('info', PLATFORM_LABEL[parsed.data], '已退出登录')
+      return { ok: true }
     },
   )
-
-  app.delete('/api/accounts/:id', async (request: FastifyRequest, reply: FastifyReply) => {
-    const id = (request.params as { id?: string }).id ?? ''
-    if (!store.remove(id)) {
-      reply.code(404)
-      return { ok: false, error: '账号不存在' }
-    }
-    return { ok: true }
-  })
 }
