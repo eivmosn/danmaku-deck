@@ -21,6 +21,8 @@ describe('LogService', () => {
     expect(entry?.message).toBe('弹幕已连接')
     expect(entry?.fields).toEqual({ roomId: 31455973 })
     expect(entry?.at).toBe('2023-11-14T22:13:20.000Z')
+    // UTC 22:13:20 对应中国时间次日 06:13:20
+    expect(entry?.atLocal).toBe('2023-11-15 06:13:20')
   })
 
   it('超出容量时丢弃最旧的', () => {
@@ -46,7 +48,9 @@ describe('LogService', () => {
     const logs = new LogService({ console: false, now: fixedClock, dir })
     logs.write('info', '推送', '已开始推流', { platform: 'bilibili' })
 
-    const file = readFileSync(join(dir, '2023-11-14.jsonl'), 'utf8').trim().split('\n')
+    const [first] = logs.recent()
+    const day = first?.atLocal.slice(0, 10) ?? ''
+    const file = readFileSync(join(dir, `${day}.jsonl`), 'utf8').trim().split('\n')
     expect(file).toHaveLength(1)
     const parsed = JSON.parse(file[0] ?? '{}') as { scope: string; message: string }
     expect(parsed.scope).toBe('推送')

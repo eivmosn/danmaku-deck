@@ -9,7 +9,10 @@ export type LogScope = '系统' | '收流' | 'B站' | '小红书' | '代理' | '
 
 export interface LogEntry {
   id: number
+  /** UTC ISO，机器读 */
   at: string
+  /** 本地时间，给人看：2026-11-20 13:21:02 */
+  atLocal: string
   level: LogLevel
   scope: LogScope
   message: string
@@ -28,6 +31,33 @@ const LEVEL_COLOR: Record<LogLevel, (text: string) => string> = {
   info: (text) => ansis.cyan(text),
   warn: (text) => ansis.yellow(text),
   error: (text) => ansis.red(text),
+}
+
+/** 固定的展示时区，默认中国标准时间 */
+const DISPLAY_TZ = process.env.PS5LB_TZ ?? 'Asia/Shanghai'
+
+const timeFormatter = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: DISPLAY_TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** 中国时区时间：YYYY-MM-DD HH:mm:ss */
+function toLocalText(date: Date): string {
+  const parts = Object.fromEntries(
+    timeFormatter.formatToParts(date).map((part) => [part.type, part.value])
+  )
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
+}
+
+/** 中国时区日期：YYYY-MM-DD，用于按天分文件 */
+function toLocalDay(date: Date): string {
+  return toLocalText(date).slice(0, 10)
 }
 
 const SCOPE_COLOR: Record<LogScope, (text: string) => string> = {
@@ -80,9 +110,11 @@ export class LogService {
   }
 
   write(level: LogLevel, scope: LogScope, message: string, fields?: Record<string, unknown>): LogEntry {
+    const now = new Date(this.now())
     const entry: LogEntry = {
       id: ++this.seq,
-      at: new Date(this.now()).toISOString(),
+      at: now.toISOString(),
+      atLocal: toLocalText(now),
       level,
       scope,
       message,
@@ -111,7 +143,7 @@ export class LogService {
   /** 按天落盘成 JSONL，方便事后排查 */
   private persist(entry: LogEntry): void {
     if (!this.dir) return
-    const day = entry.at.slice(0, 10)
+    const day = toLocalDay(new Date(this.now()))
     try {
       appendFileSync(join(this.dir, `${day}.jsonl`), `${JSON.stringify(entry)}\n`)
     } catch (error) {
@@ -124,7 +156,7 @@ export class LogService {
       process.stdout.write(`${JSON.stringify(entry)}\n`)
       return
     }
-    const time = ansis.gray(entry.at.slice(11, 19))
+    const time = ansis.gray(entry.atLocal)
     const level = LEVEL_COLOR[entry.level](LEVEL_LABEL[entry.level])
     const scope = SCOPE_COLOR[entry.scope](`[${entry.scope}]`)
     const extra = entry.fields ? ` ${ansis.gray(JSON.stringify(entry.fields))}` : ''
