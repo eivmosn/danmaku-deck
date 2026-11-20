@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { statusSchema } from '@ps5lb/shared'
 import { buildApp } from './app.js'
+import { LogService } from './logger.js'
 import { Orchestrator } from './orchestrator.js'
 
 const fixedClock = (): number => 1_700_000_000_000
@@ -49,6 +50,71 @@ describe('http', () => {
       url: '/api/hooks/stream/unavailable?path=ps5',
     })
     expect(response.json()).toEqual({ ok: true, state: 'idle' })
+    await app.close()
+  })
+
+  it('收流事件会写进中文日志并可从 /api/logs 读到', async () => {
+    const logs = new LogService({ console: false })
+    const app = buildApp({ logs })
+
+    await app.inject({ method: 'GET', url: '/api/hooks/stream/available?path=ps5' })
+    const response = await app.inject({ method: 'GET', url: '/api/logs' })
+    const body = response.json() as { ok: boolean; entries: Array<{ scope: string; message: string }> }
+
+    expect(body.ok).toBe(true)
+    expect(body.entries.some((entry) => entry.scope === '收流' && entry.message.includes('开始推流'))).toBe(true)
+    await app.close()
+  })
+
+  it('日志接口校验 limit 范围', async () => {
+    const app = buildApp()
+    const response = await app.inject({ method: 'GET', url: '/api/logs?limit=999' })
+    expect(response.statusCode).toBe(400)
+    await app.close()
+  })
+
+  it('弹幕与礼物事件写入中文日志', async () => {
+    const logs = new LogService({ console: false })
+    const app = buildApp({ logs })
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/events/danmaku',
+      payload: {
+        platform: 'bilibili',
+        kind: 'chat',
+        user: '苏苏花',
+        text: '来了老弟',
+        at: '2026-11-20T10:00:00Z',
+      },
+    })
+    await app.inject({
+      method: 'POST',
+      url: '/api/events/danmaku',
+      payload: {
+        platform: 'xiaohongshu',
+        kind: 'gift',
+        user: '甜心',
+        text: '花',
+        count: 3,
+        at: '2026-11-20T10:00:01Z',
+      },
+    })
+
+    const messages = logs.recent().map((entry) => `${entry.scope}|${entry.message}`)
+    expect(messages).toContain('B站|苏苏花：来了老弟')
+    expect(messages).toContain('小红书|甜心 送出 花 ×3')
+    await app.close()
+  })
+
+  it('弹幕事件缺少必填字段时返回 400', async () => {
+    const app = buildApp()
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/events/danmaku',
+      payload: { platform: 'bilibili' },
+    })
+    expect(response.statusCode).toBe(400)
     await app.close()
   })
 

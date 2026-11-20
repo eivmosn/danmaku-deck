@@ -2,9 +2,15 @@ import type { LiveState, Platform, PlatformStatus, Status } from '@ps5lb/shared'
 
 const PLATFORMS: Platform[] = ['bilibili', 'xiaohongshu']
 
+export interface OrchestratorLogger {
+  info: (message: string, fields?: Record<string, unknown>) => unknown
+}
+
 export interface OrchestratorOptions {
   /** 注入时钟，测试用 */
   now?: () => number
+  /** 领域日志；不传则静默 */
+  logger?: OrchestratorLogger
 }
 
 /**
@@ -23,9 +29,11 @@ export class Orchestrator {
   private streamPath: string | null = null
   private readonly platforms = new Map<Platform, PlatformStatus>()
   private readonly listeners = new Set<(status: Status) => void>()
+  private readonly logger?: OrchestratorLogger
 
   constructor(options: OrchestratorOptions = {}) {
     this.now = options.now ?? Date.now
+    this.logger = options.logger
     for (const platform of PLATFORMS) {
       this.platforms.set(platform, {
         platform,
@@ -47,6 +55,7 @@ export class Orchestrator {
   streamStarted(path: string): void {
     if (this.state === 'live' || this.state === 'starting') return
     this.streamPath = path
+    this.logger?.info('检测到 PS5 开始推流', { path })
     this.transition('starting')
     this.startedAt = this.now()
     this.transition('live')
@@ -55,6 +64,7 @@ export class Orchestrator {
   /** PS5 停止推流 */
   streamStopped(): void {
     if (this.state === 'idle' || this.state === 'stopping') return
+    this.logger?.info('PS5 已停止推流', { path: this.streamPath })
     this.transition('stopping')
     this.startedAt = null
     this.streamPath = null

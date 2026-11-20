@@ -1,9 +1,13 @@
 import { buildApp } from './app.js'
 import { printBanner } from './banner.js'
 import { loadConfig } from './config.js'
+import { createLogger, LogService } from './logger.js'
+import { Orchestrator } from './orchestrator.js'
 
 const config = loadConfig()
-const app = buildApp({ logger: config.logLevel !== 'fatal' })
+const logs = new LogService({ dir: process.env.PS5LB_LOG_DIR ?? 'logs' })
+const orchestrator = new Orchestrator({ logger: createLogger(logs, '收流') })
+const app = buildApp({ orchestrator, logs, logger: config.logLevel !== 'fatal' })
 
 await printBanner({
   version: process.env.PS5LB_VERSION ?? '0.0.1',
@@ -13,6 +17,7 @@ await printBanner({
 })
 
 await app.listen({ host: config.host, port: config.port })
+createLogger(logs, '系统').info('服务已启动', { host: config.host, port: config.port })
 
 const shutdown = async (signal: string): Promise<void> => {
   app.log.info({ signal }, '准备退出')
