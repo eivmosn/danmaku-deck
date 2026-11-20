@@ -84,7 +84,7 @@ export function AppShell() {
         <div
           className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'gap-2.5 px-4')}
         >
-          <span className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#003791] p-2.5 text-white">
+          <span className="inline-flex shrink-0 items-center justify-center rounded-[10px] bg-[#003791] p-2.5 text-white">
             <PlayStationLogo size={22} />
           </span>
           {collapsed ? null : (
@@ -183,8 +183,10 @@ export function AppShell() {
           </button>
         </nav>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 overflow-y-auto p-5 md:p-7">
-          <Outlet />
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col p-5 md:p-7">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

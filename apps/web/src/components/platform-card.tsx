@@ -23,7 +23,7 @@ export function PlatformCard({ status, platform, onToggle }: PlatformCardProps) 
       <CardHeader className="mb-0">
         <div className="flex items-center gap-2.5">
           <span
-            className="inline-flex items-center justify-center rounded-2xl p-3 text-white"
+            className="inline-flex items-center justify-center rounded-[10px] p-3 text-white"
             style={{ backgroundColor: meta.color, opacity: 0.92 }}
           >
             {platform === 'bilibili' ? <BilibiliLogo size={26} /> : <XiaohongshuLogo size={26} />}

@@ -6,7 +6,7 @@ export function LogsPage() {
   const logs = useLiveStore((state) => state.logs)
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">日志</h1>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
