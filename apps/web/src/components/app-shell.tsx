@@ -5,6 +5,7 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  CircleHelp,
   ScrollText,
   Settings,
   Sun,
@@ -21,13 +22,10 @@ const NAV: Array<{ to: string; label: string; icon: LucideIcon }> = [
   { to: '/danmaku', label: '弹幕', icon: MessagesSquare },
   { to: '/logs', label: '日志', icon: ScrollText },
   { to: '/settings', label: '设置', icon: Settings },
+  { to: '/help', label: '帮助', icon: CircleHelp },
 ]
 
 const storage = useStorage({ prefix: 'ps5lb.', type: 'localStorage' })
-
-interface AppShellProps {
-  live: boolean
-}
 
 const RAIL_CLASS = (collapsed: boolean, active: boolean): string =>
   cn(
@@ -60,7 +58,7 @@ function RailItem({ to, label, collapsed, icon }: RailItemProps) {
   )
 }
 
-export function AppShell({ live }: AppShellProps) {
+export function AppShell() {
   const { mode, toggle: toggleTheme } = useThemeStore()
   const [collapsed, setCollapsedState] = useState<boolean>(() => {
     const forced = new URLSearchParams(window.location.search).get('sidebar')
@@ -75,7 +73,7 @@ export function AppShell({ live }: AppShellProps) {
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg)]">
+    <div className="flex h-screen overflow-hidden bg-[var(--color-bg)]">
       <aside
         className={cn(
           'sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-[var(--color-border)]',
@@ -149,24 +147,6 @@ export function AppShell({ live }: AppShellProps) {
               </span>
             )}
           </button>
-          <div
-            className={cn(
-              'flex h-9 items-center text-[11px] text-[var(--color-muted)]',
-              collapsed ? 'justify-center' : 'gap-2 px-3',
-            )}
-          >
-            <span
-              className={cn(
-                'size-2 shrink-0 rounded-full',
-                live
-                  ? 'bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/60'
-                  : 'bg-[var(--color-muted)]/40',
-              )}
-            />
-            {collapsed ? null : (
-              <span className="whitespace-nowrap">{live ? '直播中' : '未开播'}</span>
-            )}
-          </div>
         </div>
       </aside>
 
@@ -203,7 +183,7 @@ export function AppShell({ live }: AppShellProps) {
           </button>
         </nav>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 p-5 md:p-7">
+        <main className="mx-auto w-full max-w-5xl flex-1 overflow-y-auto p-5 md:p-7">
           <Outlet />
         </main>
       </div>

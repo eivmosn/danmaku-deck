@@ -1,4 +1,5 @@
 import { Activity, Clock, Radio, Waypoints } from 'lucide-react'
+import { LiveNotice } from '@/components/live-notice'
 import { PlatformCard } from '@/components/platform-card'
 import { StatCard } from '@/components/stat-card'
 import { DanmakuList } from '@/components/danmaku-list'
@@ -29,6 +30,8 @@ export function DashboardPage() {
           {STATE_TEXT[status?.state ?? 'idle'] ?? '未知'}
         </span>
       </header>
+
+      <LiveNotice status={status} />
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard

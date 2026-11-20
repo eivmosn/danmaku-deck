@@ -18,7 +18,7 @@ export function DanmakuPage() {
   const items = filter === 'all' ? danmaku : danmaku.filter((item) => item.platform === filter)
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">弹幕</h1>

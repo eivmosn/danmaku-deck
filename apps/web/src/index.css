@@ -29,6 +29,8 @@ html,
 body,
 #root {
   height: 100%;
+  /* 整页固定，只有内容区滚动 */
+  overflow: hidden;
 }
 
 body {
@@ -45,4 +47,31 @@ body {
 
 * {
   border-color: var(--color-border);
+}
+
+/* 细滚动条：跟随主题，不抢视觉 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+  background-clip: content-box;
 }

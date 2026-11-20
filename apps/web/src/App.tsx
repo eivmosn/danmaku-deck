@@ -6,12 +6,13 @@ import { useEventStream } from '@/lib/sse'
 import type { LogEntry } from '@/lib/types'
 import { DashboardPage } from '@/pages/dashboard'
 import { DanmakuPage } from '@/pages/danmaku'
+import { HelpPage } from '@/pages/help'
 import { LogsPage } from '@/pages/logs'
 import { SettingsPage } from '@/pages/settings'
 import { useLiveStore } from '@/stores/live'
 
 export function App() {
-  const { status, refresh, applyStatus, pushDanmaku, pushLog } = useLiveStore()
+  const { refresh, applyStatus, pushDanmaku, pushLog } = useLiveStore()
 
   useEffect(() => {
     void refresh()
@@ -23,11 +24,12 @@ export function App() {
 
   return (
     <Routes>
-      <Route element={<AppShell live={status?.state === 'live'} />}>
+      <Route element={<AppShell />}>
         <Route index element={<DashboardPage />} />
         <Route path="danmaku" element={<DanmakuPage />} />
         <Route path="logs" element={<LogsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="help" element={<HelpPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
