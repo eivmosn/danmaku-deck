@@ -79,7 +79,10 @@ export interface XhsDanmakuOptions {
   roomId: string
   cookie: string
   onEvent: (event: DanmakuEvent) => void
-  onState?: (state: 'connecting' | 'online' | 'closed' | 'error', detail?: string) => void
+  onState?: (
+    state: 'connecting' | 'online' | 'closed' | 'error' | 'notice',
+    detail?: string,
+  ) => void
   spawnImpl?: typeof spawn
   /** catbus 可执行文件路径，默认从 PATH 找 */
   command?: string
@@ -89,6 +92,9 @@ export class XiaohongshuDanmakuClient {
   private child: ChildProcess | null = null
   private buffer = ''
   private stopped = false
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  /** 连续重连次数，收到任何一条消息就清零 */
+  private attempts = 0
   private readonly options: XhsDanmakuOptions
 
   constructor(options: XhsDanmakuOptions) {
@@ -96,30 +102,40 @@ export class XiaohongshuDanmakuClient {
   }
 
   async connect(): Promise<void> {
+    if (this.stopped) return
     this.options.onState?.('connecting')
     const spawnImpl = this.options.spawnImpl ?? spawn
     // catbus 通过环境变量拿 cookie，避免命令里出现凭证
-    const child = spawnImpl(
-      this.options.command ?? 'catbus',
-      ['xhs', 'live', 'listen', this.options.roomId, '--duration', '3600'],
-      {
-        env: { ...process.env, CATBUS_XHS_COOKIE: this.options.cookie },
-        stdio: ['ignore', 'pipe', 'pipe'],
-      },
-    )
+    // 注意：同一个房间只允许一条弹幕连接，多开会互相踢，所以绝不能并发两条
+    const args = ['xhs', 'live', 'listen', this.options.roomId, '--duration', '3600']
+    if (process.env.PS5LB_XHS_RAW === '1') args.push('--raw')
+    const child = spawnImpl(this.options.command ?? 'catbus', args, {
+      env: { ...process.env, CATBUS_XHS_COOKIE: this.options.cookie },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
     this.child = child
 
     child.stdout?.on('data', (chunk: Buffer) => this.handleChunk(chunk))
     child.stderr?.on('data', (chunk: Buffer) => {
       const line = chunk.toString('utf8').trim()
-      if (line) this.options.onState?.('error', line.slice(0, 200))
+      if (!line) return
+      // catbus 的「N 秒后重连（第 M 次）」是它自己在退避重试，不是致命错误
+      if (/重连|reconnect|retry/i.test(line)) {
+        this.options.onState?.('notice', line.slice(0, 200))
+        return
+      }
+      this.options.onState?.('error', line.slice(0, 200))
     })
     child.on('error', (error) => {
       this.options.onState?.('error', error.message)
     })
     child.on('exit', () => {
       this.child = null
-      if (!this.stopped) this.options.onState?.('closed')
+      if (this.stopped) return
+      this.options.onState?.('closed')
+      // 进程没了必须自己拉起来：catbus 带 --duration 3600，满一小时会自己退出，
+      // 不重连的话小红书的弹幕从此永久静默。
+      this.scheduleReconnect()
     })
 
     this.options.onState?.('online')
@@ -127,9 +143,29 @@ export class XiaohongshuDanmakuClient {
 
   stop(): void {
     this.stopped = true
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
     const child = this.child
     this.child = null
     child?.kill('SIGTERM')
+  }
+
+  private scheduleReconnect(): void {
+    if (this.stopped || this.reconnectTimer) return
+    const delay = Math.min(30_000, 1000 * 2 ** Math.min(this.attempts, 5))
+    this.attempts += 1
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      if (this.stopped) return
+      void this.connect().catch((error: unknown) => {
+        this.options.onState?.('error', error instanceof Error ? error.message : '重连失败')
+        this.attempts += 1
+        this.scheduleReconnect()
+      })
+    }, delay)
+    this.reconnectTimer.unref?.()
   }
 
   private handleChunk(chunk: Buffer): void {
@@ -138,7 +174,14 @@ export class XiaohongshuDanmakuClient {
     this.buffer = lines.pop() ?? ''
     for (const line of lines) {
       const event = parseCatbusLine(line)
-      if (event) this.options.onEvent(event)
+      if (event) {
+        // 收到消息说明链路是活的，重连退避从头算
+        this.attempts = 0
+        this.options.onEvent(event)
+      } else if (process.env.PS5LB_XHS_RAW === '1' && line.trim().startsWith('{')) {
+        // 诊断模式：把没能归类的事件打出来，用来确认进场等消息的原始字段
+        this.options.onState?.('notice', line.trim().slice(0, 400))
+      }
     }
   }
 }

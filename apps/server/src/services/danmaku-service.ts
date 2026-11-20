@@ -177,7 +177,8 @@ export class DanmakuService {
       onEvent: (event) => this.deps.bus.publish(event),
       onState: (state, detail) => {
         if (state === 'online') this.deps.logs.write('info', '小红书', '弹幕已连接')
-        if (state === 'closed') this.deps.logs.write('warn', '小红书', '弹幕连接已断开')
+        if (state === 'closed') this.deps.logs.write('warn', '小红书', '弹幕连接已断开，正在重连')
+        if (state === 'notice') this.deps.logs.write('debug', '小红书', detail ?? '')
         if (state === 'error')
           this.deps.logs.write('error', '小红书', `弹幕连接出错：${detail ?? ''}`)
       },

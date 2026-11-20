@@ -89,3 +89,85 @@ describe('XiaohongshuDanmakuClient', () => {
     client.stop()
   })
 })
+
+/** catbus 带 --duration 3600，满一小时会自己退出；退出后不重连就会永久静默 */
+function makeChild(): EventEmitter & {
+  stdout: EventEmitter
+  stderr: EventEmitter
+  kill: () => void
+} {
+  return Object.assign(new EventEmitter(), {
+    stdout: new EventEmitter(),
+    stderr: new EventEmitter(),
+    kill: vi.fn(),
+  }) as never
+}
+
+describe('子进程退出后自动重连', () => {
+  it('exit 之后会自动再 spawn 一个', async () => {
+    vi.useFakeTimers()
+    const children = [makeChild(), makeChild()]
+    let index = 0
+    const spawnImpl = vi.fn(() => children[index++])
+    const states: string[] = []
+    const client = new XiaohongshuDanmakuClient({
+      roomId: 'r',
+      cookie: 'c',
+      onEvent: () => {},
+      onState: (state) => states.push(state),
+      spawnImpl: spawnImpl as never,
+    })
+
+    await client.connect()
+    expect(spawnImpl).toHaveBeenCalledTimes(1)
+
+    children[0]!.emit('exit')
+    expect(states).toContain('closed')
+
+    await vi.advanceTimersByTimeAsync(1200)
+    expect(spawnImpl).toHaveBeenCalledTimes(2)
+    client.stop()
+    vi.useRealTimers()
+  })
+
+  it('catbus 的重连提示走 notice，不算 error', async () => {
+    const child = makeChild()
+    const states: string[] = []
+    const details: string[] = []
+    const client = new XiaohongshuDanmakuClient({
+      roomId: 'r',
+      cookie: 'c',
+      onEvent: () => {},
+      onState: (state, detail) => {
+        states.push(state)
+        if (detail) details.push(detail)
+      },
+      spawnImpl: (() => child) as never,
+    })
+
+    await client.connect()
+    child.stderr.emit('data', Buffer.from('[catbus] 4 秒后重连（第 3 次）\n'))
+    expect(states).toContain('notice')
+    expect(states).not.toContain('error')
+    client.stop()
+  })
+
+  it('stop 之后不再重连', async () => {
+    vi.useFakeTimers()
+    const child = makeChild()
+    const spawnImpl = vi.fn(() => child)
+    const client = new XiaohongshuDanmakuClient({
+      roomId: 'r',
+      cookie: 'c',
+      onEvent: () => {},
+      spawnImpl: spawnImpl as never,
+    })
+
+    await client.connect()
+    client.stop()
+    child.emit('exit')
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(spawnImpl).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+})
