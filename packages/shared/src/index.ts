@@ -23,6 +23,8 @@ export const statusSchema = z.object({
   state: liveStateSchema,
   uptimeSeconds: z.number().int().nonnegative(),
   platforms: z.array(platformStatusSchema),
+  /** 当前从 PS5 收进来的流路径，未开播为空 */
+  streamPath: z.string().nullable(),
   updatedAt: z.string(),
 })
 export type Status = z.infer<typeof statusSchema>

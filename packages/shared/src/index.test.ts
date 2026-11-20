@@ -9,10 +9,12 @@ describe('statusSchema', () => {
       platforms: [
         { platform: 'bilibili', enabled: true, accountName: '丘野', live: true, error: null },
       ],
+      streamPath: 'ps5',
       updatedAt: new Date().toISOString(),
     })
     expect(parsed.state).toBe('live')
     expect(parsed.platforms).toHaveLength(1)
+    expect(parsed.streamPath).toBe('ps5')
   })
 
   it('拒绝非法状态机取值', () => {
