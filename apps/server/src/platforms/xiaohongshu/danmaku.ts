@@ -36,7 +36,9 @@ export function parseCatbusLine(line: string): DanmakuEvent | null {
 
   const kind = raw.type ?? ''
   const user = raw.user?.name ?? ''
-  if (!user) return null
+  // 进场/关注/点赞有时不带昵称，丢掉就整条欢迎没了；弹幕和礼物没昵称才真没法显示
+  const needsUser = kind === 'chat' || kind === 'gift'
+  if (!user && (needsUser || !LABEL[kind])) return null
 
   const giftName = raw.gift?.name ?? ''
   const giftCount = Number(raw.gift?.count ?? 0)
@@ -72,6 +74,76 @@ export function parseCatbusLine(line: string): DanmakuEvent | null {
     text: mapped === 'gift' ? giftName || text : text,
     count: mapped === 'gift' ? giftCount : 0,
     at: raw.time ?? new Date().toISOString(),
+  }
+}
+
+/**
+ * `--raw` 模式的解析：catbus 用 --raw 时直接吐平台原始对象，
+ * 字段按它自己 normalize 里的 roomEvent 来（customData.type / desc / profile / gift）。
+ * 有了这个，开诊断开关也不会把弹幕弄丢。
+ */
+interface RawPushPayload {
+  ts?: number
+  customData?: {
+    type?: string
+    desc?: string
+    current_time?: number
+    count?: number
+    profile?: { nickname?: string; user_id?: string }
+    gift?: { name?: string; count?: number }
+    gift_info?: { name?: string; count?: number }
+  }
+}
+
+export function parseCatbusRawLine(line: string): DanmakuEvent | null {
+  const trimmed = line.trim()
+  if (!trimmed.startsWith('{')) return null
+
+  let payload: RawPushPayload
+  try {
+    payload = JSON.parse(trimmed) as RawPushPayload
+  } catch {
+    return null
+  }
+
+  const custom = payload.customData
+  if (!custom || typeof custom !== 'object') return null
+
+  const type = String(custom.type ?? '')
+  const user = custom.profile?.nickname ?? ''
+  const stamp = payload.ts ?? custom.current_time
+  const at = stamp ? new Date(stamp).toISOString() : new Date().toISOString()
+
+  const giftName = String(custom.gift?.name ?? custom.gift_info?.name ?? custom.desc ?? '')
+  const giftCount = Number(custom.gift?.count ?? custom.gift_info?.count ?? custom.count ?? 1) || 1
+
+  switch (type) {
+    case 'text':
+      if (!user || !custom.desc) return null
+      return { platform: 'xiaohongshu', kind: 'chat', user, text: custom.desc, count: 0, at }
+    case 'gift': {
+      if (!user || !giftName) return null
+      return {
+        platform: 'xiaohongshu',
+        kind: 'gift',
+        user,
+        text: giftName,
+        count: giftCount,
+        at,
+      }
+    }
+    case 'praise':
+    case 'light':
+      return { platform: 'xiaohongshu', kind: 'like', user, text: '点了赞', count: 1, at }
+    case 'come':
+    case 'enter':
+    case 'enter_room':
+      return { platform: 'xiaohongshu', kind: 'enter', user, text: '进入了直播间', count: 1, at }
+    case 'follow':
+      return { platform: 'xiaohongshu', kind: 'follow', user, text: '关注了主播', count: 1, at }
+    default:
+      // viewer_heart / audience_num / letter_refresh 之类没有展示价值
+      return null
   }
 }
 
@@ -172,14 +244,17 @@ export class XiaohongshuDanmakuClient {
     this.buffer += chunk.toString('utf8')
     const lines = this.buffer.split(/\r?\n/)
     this.buffer = lines.pop() ?? ''
+    const rawMode = process.env.PS5LB_XHS_RAW === '1'
     for (const line of lines) {
-      const event = parseCatbusLine(line)
+      const event = rawMode ? parseCatbusRawLine(line) : parseCatbusLine(line)
       if (event) {
         // 收到消息说明链路是活的，重连退避从头算
         this.attempts = 0
         this.options.onEvent(event)
-      } else if (process.env.PS5LB_XHS_RAW === '1' && line.trim().startsWith('{')) {
-        // 诊断模式：把没能归类的事件打出来，用来确认进场等消息的原始字段
+        continue
+      }
+      if (rawMode && line.trim().startsWith('{')) {
+        // 诊断模式：把没能归类的原始事件打出来，用来确认还漏了哪些类型
         this.options.onState?.('notice', line.trim().slice(0, 400))
       }
     }

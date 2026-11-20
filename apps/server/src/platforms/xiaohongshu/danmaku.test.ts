@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { describe, expect, it, vi } from 'vitest'
-import { parseCatbusLine, XiaohongshuDanmakuClient } from './danmaku'
+import { parseCatbusLine, parseCatbusRawLine, XiaohongshuDanmakuClient } from './danmaku'
 
 /** 行格式来自 catbus 的实际输出（旧桥 xhs-bridge.mjs 里同款解析） */
 const lines = {
@@ -169,5 +169,81 @@ describe('子进程退出后自动重连', () => {
     await vi.advanceTimersByTimeAsync(5000)
     expect(spawnImpl).toHaveBeenCalledTimes(1)
     vi.useRealTimers()
+  })
+})
+
+describe('进场消息', () => {
+  it('没有昵称的进场也不丢，昵称留空由界面兜底', () => {
+    const event = parseCatbusLine('{"type":"enter","time":"2026-11-20T10:00:02Z"}')
+    expect(event).toMatchObject({ platform: 'xiaohongshu', kind: 'enter', user: '' })
+    expect(event?.text).toBe('进入了直播间')
+  })
+
+  it('弹幕没有昵称仍然丢弃', () => {
+    expect(parseCatbusLine('{"type":"chat","text":"你好"}')).toBeNull()
+  })
+
+  it('无法归类的事件仍然丢弃', () => {
+    expect(parseCatbusLine('{"type":"other","user":null,"text":null}')).toBeNull()
+  })
+})
+
+describe('parseCatbusRawLine（--raw 模式）', () => {
+  /** 真实报文：2026-11-20 22:31 抓自 catbus xhs live listen --raw */
+  const realText = JSON.stringify({
+    command: 1,
+    customData: {
+      type: 'text',
+      current_time: 1795185111904,
+      desc: '她',
+      profile: { nickname: '喵喵喵大福', user_id: '59f3046811be10677b852191' },
+    },
+    ts: 1795185111928,
+  })
+
+  it('真实弹幕报文能解析出昵称和正文', () => {
+    const event = parseCatbusRawLine(realText)
+    expect(event).toMatchObject({
+      platform: 'xiaohongshu',
+      kind: 'chat',
+      user: '喵喵喵大福',
+      text: '她',
+    })
+  })
+
+  it('进场/关注/点赞按 catbus 的字段映射', () => {
+    const at = '{"ts":1795185111928,"customData":{"type":"come","profile":{"nickname":"路人甲"}}}'
+    expect(parseCatbusRawLine(at)).toMatchObject({ kind: 'enter', user: '路人甲' })
+
+    const follow =
+      '{"ts":1795185111928,"customData":{"type":"follow","profile":{"nickname":"新粉"}}}'
+    expect(parseCatbusRawLine(follow)).toMatchObject({ kind: 'follow', user: '新粉' })
+
+    const praise =
+      '{"ts":1795185111928,"customData":{"type":"praise","profile":{"nickname":"点赞的"}}}'
+    expect(parseCatbusRawLine(praise)).toMatchObject({ kind: 'like', user: '点赞的' })
+  })
+
+  it('礼物取 gift.name / count', () => {
+    const gift = JSON.stringify({
+      ts: 1795185111928,
+      customData: {
+        type: 'gift',
+        gift: { name: '小心心', count: 3 },
+        profile: { nickname: '送礼的' },
+      },
+    })
+    expect(parseCatbusRawLine(gift)).toMatchObject({
+      kind: 'gift',
+      user: '送礼的',
+      text: '小心心',
+      count: 3,
+    })
+  })
+
+  it('内部事件（心跳/人数/信件）忽略', () => {
+    for (const type of ['viewer_heart', 'audience_num', 'letter_refresh']) {
+      expect(parseCatbusRawLine(`{"customData":{"type":"${type}"}}`)).toBeNull()
+    }
   })
 })
