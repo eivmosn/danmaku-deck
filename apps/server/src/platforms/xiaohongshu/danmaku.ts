@@ -40,6 +40,20 @@ export function parseCatbusLine(line: string): DanmakuEvent | null {
   const needsUser = kind === 'chat' || kind === 'gift'
   if (!user && (needsUser || !LABEL[kind])) return null
 
+  // catbus 不认识 audience_join_v2（小红书的进场类型），会落到它的 default 分支变成
+  // type:"other"，但昵称仍然带在 user 里。实测报文见 test 里的 realJoin 夹具。
+  // 必须放在算文案之前，否则会因为 other 没有固定文案被当成空事件丢掉。
+  if (kind === 'other' && user) {
+    return {
+      platform: 'xiaohongshu',
+      kind: 'enter',
+      user,
+      text: '进入了直播间',
+      count: 1,
+      at: raw.time ?? new Date().toISOString(),
+    }
+  }
+
   const giftName = raw.gift?.name ?? ''
   const giftCount = Number(raw.gift?.count ?? 0)
   const giftText = giftName ? (giftCount > 1 ? `${giftName} ×${giftCount}` : giftName) : ''
@@ -135,6 +149,7 @@ export function parseCatbusRawLine(line: string): DanmakuEvent | null {
     case 'praise':
     case 'light':
       return { platform: 'xiaohongshu', kind: 'like', user, text: '点了赞', count: 1, at }
+    case 'audience_join_v2':
     case 'come':
     case 'enter':
     case 'enter_room':

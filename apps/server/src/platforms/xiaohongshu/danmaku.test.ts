@@ -247,3 +247,46 @@ describe('parseCatbusRawLine（--raw 模式）', () => {
     }
   })
 })
+
+describe('进场事件 audience_join_v2', () => {
+  /** 真实报文：2026-11-20 22:50 抓自 catbus xhs live listen --raw */
+  const realJoin = JSON.stringify({
+    command: 1,
+    customData: {
+      type: 'audience_join_v2',
+      current_time: 1795186257113,
+      profile: { nickname: 'MJ', user_id: '5da87fb80000000001000800', avatar: 'x' },
+      source: 'slide',
+      pre_source: 'explore_feed_card',
+      ack_code: 1,
+    },
+    msgId: '1441078369080311810',
+    roomId: '570550179512781886',
+    ts: 1795186257171,
+  })
+
+  it('raw 路径能认出 audience_join_v2', () => {
+    expect(parseCatbusRawLine(realJoin)).toMatchObject({
+      platform: 'xiaohongshu',
+      kind: 'enter',
+      user: 'MJ',
+      text: '进入了直播间',
+    })
+  })
+
+  it('归一化路径：catbus 归成 other 但带昵称，也认作进场', () => {
+    // catbus 的 default 分支输出长这样（type=other，user 来自 customData.profile）
+    const normalized =
+      '{"type":"other","time":"2026-11-20T14:50:57Z","user":{"name":"MJ","id":"5da87fb8"},"text":null}'
+    expect(parseCatbusLine(normalized)).toMatchObject({
+      platform: 'xiaohongshu',
+      kind: 'enter',
+      user: 'MJ',
+    })
+  })
+
+  it('不带昵称的 other 仍然忽略（排行榜横幅之类）', () => {
+    expect(parseCatbusLine('{"type":"other","user":null,"text":null}')).toBeNull()
+    expect(parseCatbusLine('{"type":"other","text":"榜单"}')).toBeNull()
+  })
+})
