@@ -12,6 +12,7 @@ import {
   parseSendGiftV2,
   type Packet,
 } from './danmaku'
+import { decodeProto } from './protobuf'
 import { clearWbiCache, signWbi } from './wbi'
 
 const ROOM_INIT_URL = 'https://api.live.bilibili.com/room/v1/Room/room_init'
@@ -183,7 +184,19 @@ export class BilibiliDanmakuClient {
         // 新协议是 base64 protobuf，且 gift_list 可能一次多个礼物
         const pb = (item.data as { pb?: string } | undefined)?.pb
         if (pb) {
-          for (const gift of parseSendGiftV2(pb, new Date().toISOString())) {
+          const gifts = parseSendGiftV2(pb, new Date().toISOString())
+          // 字段号是否与 blivedm 的 schema 一致，只能靠真实报文验证：
+          // 每次礼物都留一份「解出的字段号 + pb 片段 + 解析结果」，下一场就能对照
+          const fieldIds = [
+            ...new Set(decodeProto(Buffer.from(pb, 'base64')).map((field) => field.field)),
+          ].join(',')
+          this.options.onLog?.(
+            `SEND_GIFT_V2 字段号[${fieldIds}] → ${
+              gifts.map((gift) => `${gift.user} 送 ${gift.text}×${gift.count}`).join('；') ||
+              '未解析出礼物'
+            }，pb=${pb.slice(0, 120)}`,
+          )
+          for (const gift of gifts) {
             this.options.onEvent(gift)
           }
         }
