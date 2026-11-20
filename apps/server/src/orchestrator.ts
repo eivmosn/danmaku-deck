@@ -71,7 +71,10 @@ export class Orchestrator {
     this.transition('idle')
   }
 
-  setPlatform(platform: Platform, patch: Partial<Omit<PlatformStatus, 'platform'>>): PlatformStatus {
+  setPlatform(
+    platform: Platform,
+    patch: Partial<Omit<PlatformStatus, 'platform'>>,
+  ): PlatformStatus {
     const current = this.platforms.get(platform)
     if (!current) throw new Error(`未知平台：${platform}`)
     const next: PlatformStatus = { ...current, ...patch, platform }

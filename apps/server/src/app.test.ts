@@ -59,10 +59,15 @@ describe('http', () => {
 
     await app.inject({ method: 'GET', url: '/api/hooks/stream/available?path=ps5' })
     const response = await app.inject({ method: 'GET', url: '/api/logs' })
-    const body = response.json() as { ok: boolean; entries: Array<{ scope: string; message: string }> }
+    const body = response.json() as {
+      ok: boolean
+      entries: Array<{ scope: string; message: string }>
+    }
 
     expect(body.ok).toBe(true)
-    expect(body.entries.some((entry) => entry.scope === '收流' && entry.message.includes('开始推流'))).toBe(true)
+    expect(
+      body.entries.some((entry) => entry.scope === '收流' && entry.message.includes('开始推流')),
+    ).toBe(true)
     await app.close()
   })
 

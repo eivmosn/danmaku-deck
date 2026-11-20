@@ -8,6 +8,8 @@ export default defineConfig({
   target: 'node22',
   dts: false,
   clean: true,
+  minify: true,
+  sourcemap: false,
   alias: {
     '@/': fileURLToPath(new URL('./src/', import.meta.url)),
   },

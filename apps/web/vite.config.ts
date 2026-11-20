@@ -13,7 +13,14 @@ export default defineConfig({
       ),
     },
   },
+  build: {
+    minify: 'esbuild',
+    sourcemap: false,
+    target: 'es2022',
+    reportCompressedSize: false,
+  },
   server: {
+    host: '127.0.0.1',
     port: 5173,
     proxy: {
       '/api': 'http://127.0.0.1:8787',

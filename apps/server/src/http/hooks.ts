@@ -21,7 +21,7 @@ function parsePath(query: unknown): string | null {
 export function registerHookRoutes(app: FastifyInstance, orchestrator: Orchestrator): void {
   const onAvailable = async (
     request: FastifyRequest,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<{ ok: boolean; state?: string; error?: string }> => {
     const path = parsePath(request.query)
     if (path === null) {
@@ -34,7 +34,7 @@ export function registerHookRoutes(app: FastifyInstance, orchestrator: Orchestra
 
   const onUnavailable = async (
     request: FastifyRequest,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<{ ok: boolean; state?: string; error?: string }> => {
     const path = parsePath(request.query)
     if (path === null) {
@@ -47,5 +47,9 @@ export function registerHookRoutes(app: FastifyInstance, orchestrator: Orchestra
 
   // MediaMTX 用 curl 直接请求，GET / POST 都接受
   app.route({ method: ['GET', 'POST'], url: '/api/hooks/stream/available', handler: onAvailable })
-  app.route({ method: ['GET', 'POST'], url: '/api/hooks/stream/unavailable', handler: onUnavailable })
+  app.route({
+    method: ['GET', 'POST'],
+    url: '/api/hooks/stream/unavailable',
+    handler: onUnavailable,
+  })
 }

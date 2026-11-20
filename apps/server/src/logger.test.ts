@@ -50,7 +50,9 @@ describe('LogService', () => {
 
     const [first] = logs.recent()
     const day = first?.atLocal.slice(0, 10) ?? ''
-    const file = readFileSync(join(dir, `${day}.jsonl`), 'utf8').trim().split('\n')
+    const file = readFileSync(join(dir, `${day}.jsonl`), 'utf8')
+      .trim()
+      .split('\n')
     expect(file).toHaveLength(1)
     const parsed = JSON.parse(file[0] ?? '{}') as { scope: string; message: string }
     expect(parsed.scope).toBe('推送')

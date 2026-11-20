@@ -50,7 +50,7 @@ const timeFormatter = new Intl.DateTimeFormat('zh-CN', {
 /** 中国时区时间：YYYY-MM-DD HH:mm:ss */
 function toLocalText(date: Date): string {
   const parts = Object.fromEntries(
-    timeFormatter.formatToParts(date).map((part) => [part.type, part.value])
+    timeFormatter.formatToParts(date).map((part) => [part.type, part.value]),
   )
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
 }
@@ -109,7 +109,12 @@ export class LogService {
     }
   }
 
-  write(level: LogLevel, scope: LogScope, message: string, fields?: Record<string, unknown>): LogEntry {
+  write(
+    level: LogLevel,
+    scope: LogScope,
+    message: string,
+    fields?: Record<string, unknown>,
+  ): LogEntry {
     const now = new Date(this.now())
     const entry: LogEntry = {
       id: ++this.seq,
@@ -147,7 +152,9 @@ export class LogService {
     try {
       appendFileSync(join(this.dir, `${day}.jsonl`), `${JSON.stringify(entry)}\n`)
     } catch (error) {
-      process.stderr.write(`日志落盘失败：${error instanceof Error ? error.message : String(error)}\n`)
+      process.stderr.write(
+        `日志落盘失败：${error instanceof Error ? error.message : String(error)}\n`,
+      )
     }
   }
 
@@ -167,9 +174,13 @@ export class LogService {
 /** 带作用域的便捷记录器 */
 export function createLogger(logs: LogService, scope: LogScope) {
   return {
-    debug: (message: string, fields?: Record<string, unknown>) => logs.write('debug', scope, message, fields),
-    info: (message: string, fields?: Record<string, unknown>) => logs.write('info', scope, message, fields),
-    warn: (message: string, fields?: Record<string, unknown>) => logs.write('warn', scope, message, fields),
-    error: (message: string, fields?: Record<string, unknown>) => logs.write('error', scope, message, fields),
+    debug: (message: string, fields?: Record<string, unknown>) =>
+      logs.write('debug', scope, message, fields),
+    info: (message: string, fields?: Record<string, unknown>) =>
+      logs.write('info', scope, message, fields),
+    warn: (message: string, fields?: Record<string, unknown>) =>
+      logs.write('warn', scope, message, fields),
+    error: (message: string, fields?: Record<string, unknown>) =>
+      logs.write('error', scope, message, fields),
   }
 }
