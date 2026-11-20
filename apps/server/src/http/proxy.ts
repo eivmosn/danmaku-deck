@@ -1,8 +1,13 @@
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import type { LogService } from '@/logger'
 import type { MihomoClient } from '@/network/mihomo'
+
+function reason(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
 
 const nodeSchema = z.object({ name: z.string().min(1) })
 const configSchema = z.object({
@@ -24,7 +29,7 @@ export function registerProxyRoutes(app: FastifyInstance, deps: ProxyDeps): void
     try {
       return { ok: true, ...(await deps.mihomo.status()) }
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : '代理不可用' }
+      return { ok: false, error: `连不上代理服务：${reason(error)}` }
     }
   })
 
@@ -34,17 +39,23 @@ export function registerProxyRoutes(app: FastifyInstance, deps: ProxyDeps): void
       reply.code(400)
       return { ok: false, error: '缺少节点名' }
     }
-    const ok = await deps.mihomo.selectNode(parsed.data.name)
-    deps.logs.write(
-      ok ? 'info' : 'error',
-      '代理',
-      ok ? `已切换节点：${parsed.data.name}` : '切换节点失败',
-    )
-    if (!ok) {
+    try {
+      const ok = await deps.mihomo.selectNode(parsed.data.name)
+      deps.logs.write(
+        ok ? 'info' : 'error',
+        '代理',
+        ok ? `已切换节点：${parsed.data.name}` : '切换节点失败',
+      )
+      if (!ok) {
+        reply.code(502)
+        return { ok: false, error: '切换失败' }
+      }
+      return { ok: true }
+    } catch (error) {
+      deps.logs.write('error', '代理', '切换节点时连不上 mihomo')
       reply.code(502)
-      return { ok: false, error: '切换失败' }
+      return { ok: false, error: `连不上代理服务：${reason(error)}` }
     }
-    return { ok: true }
   })
 
   app.post('/api/proxy/config', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -64,13 +75,20 @@ export function registerProxyRoutes(app: FastifyInstance, deps: ProxyDeps): void
       return { ok: false, error: '内容不是 Clash 配置（缺少 proxies:）' }
     }
 
+    mkdirSync(dirname(deps.writePath), { recursive: true })
     writeFileSync(deps.writePath, yaml, { mode: 0o644 })
-    const ok = await deps.mihomo.reload(deps.configPath)
-    deps.logs.write(ok ? 'info' : 'error', '代理', ok ? '代理配置已重载' : '代理配置重载失败')
-    if (!ok) {
+    try {
+      const ok = await deps.mihomo.reload(deps.configPath)
+      deps.logs.write(ok ? 'info' : 'error', '代理', ok ? '代理配置已重载' : '代理配置重载失败')
+      if (!ok) {
+        reply.code(502)
+        return { ok: false, error: '重载失败' }
+      }
+      return { ok: true }
+    } catch (error) {
+      deps.logs.write('error', '代理', '重载时连不上 mihomo')
       reply.code(502)
-      return { ok: false, error: '重载失败' }
+      return { ok: false, error: `连不上代理服务：${reason(error)}` }
     }
-    return { ok: true }
   })
 }
