@@ -8,10 +8,13 @@ import { createLogger, LogService } from '@/logger'
 import { Orchestrator } from '@/orchestrator'
 import { IrcServer } from '@/danmaku/irc-server'
 import { BilibiliLive } from '@/platforms/bilibili/live'
+import { XiaohongshuApi } from '@/platforms/xiaohongshu/api'
 import { DnsServer } from '@/network/dns'
 import { SniRelay } from '@/network/relay'
 import { MihomoClient } from '@/network/mihomo'
 import { PushService } from '@/push/push-service'
+import { MediaMtxSync } from '@/services/mediamtx-sync'
+import { SettingsStore } from '@/settings-store'
 import { PushTargetsStore } from '@/push/targets-store'
 import { DanmakuService } from '@/services/danmaku-service'
 
@@ -20,6 +23,7 @@ const logs = new LogService({ dir: process.env.PS5LB_LOG_DIR ?? 'logs' })
 const orchestrator = new Orchestrator({ logger: createLogger(logs, '收流') })
 const accounts = new AccountsStore()
 const pushTargets = new PushTargetsStore()
+const settings = new SettingsStore()
 const bus = new DanmakuBus()
 // 前端产物目录：容器/单文件部署时用环境变量指定
 const webDir = process.env.PS5LB_WEB_DIR ?? new URL('../../web/dist', import.meta.url).pathname
@@ -29,6 +33,7 @@ const app = buildApp({
   bus,
   accounts,
   pushTargets,
+  settings,
   logger: config.logLevel !== 'fatal',
   webDir,
   mihomo: new MihomoClient({
@@ -47,13 +52,50 @@ bus.subscribe((event) => {
   logs.write(levelFor(event), scope, describe(event), { kind: event.kind, user: event.user })
 })
 
-const danmaku = new DanmakuService({ orchestrator, accounts, pushTargets, bus, logs })
+const bilibiliLive = new BilibiliLive()
+const xiaohongshuApi = new XiaohongshuApi()
+
+// 重启后把登录态与开关恢复出来，界面不用重新点
+for (const platform of ['bilibili', 'xiaohongshu'] as const) {
+  const account = accounts.get(platform)
+  orchestrator.setPlatform(platform, {
+    enabled: settings.enabled(platform),
+    accountName: account?.displayName ?? null,
+  })
+}
+orchestrator.refresh()
+
+// hook 只在瞬间触发，重启或丢事件时靠对账兜底
+const mediamtxSync = new MediaMtxSync({
+  orchestrator,
+  onChange: (path, live) => {
+    createLogger(logs, '收流').info(live ? '检测到推流（对账）' : '推流已结束（对账）', { path })
+  },
+})
+mediamtxSync.start()
+
+// 新的一场直播先把上一场的弹幕清掉
+orchestrator.onStatus((status) => {
+  if (status.state === 'starting' || (status.state === 'live' && status.uptimeSeconds === 0)) {
+    bus.clear()
+  }
+})
+
+const danmaku = new DanmakuService({
+  orchestrator,
+  accounts,
+  pushTargets,
+  bus,
+  logs,
+  xiaohongshu: xiaohongshuApi,
+})
 danmaku.start()
 
-const bilibiliLive = new BilibiliLive()
+/** 自动调用 B 站开播接口（勾上开关就开播）；默认开启 */
+const autoStartBilibili = process.env.PS5LB_AUTO_START_BILI !== '0'
 
-/** 自动调用 B 站开播接口；默认关闭，避免误开播 */
-const autoStartBilibili = process.env.PS5LB_AUTO_START_BILI === '1'
+/** 记录本场由我们开播的 B 站直播，停播时配对关掉 */
+let bilibiliSession: { roomId: string; channel: 'electron' | 'livehime' } | null = null
 
 function cookieOf(secret: Record<string, string>): string {
   return Object.entries(secret)
@@ -69,6 +111,19 @@ const push = new PushService({
   resolveTarget: async (platform) => {
     const configured = pushTargets.get(platform)
     if (configured) return configured
+
+    if (platform === 'xiaohongshu') {
+      const secret = accounts.secret('xiaohongshu')
+      if (!secret?.cookie) return null
+      const living = await xiaohongshuApi.livingPushUrl(secret.cookie)
+      if (!living.ok || !living.data) {
+        createLogger(logs, '小红书').warn(`取不到推流地址：${living.detail ?? '未开播'}`)
+        return null
+      }
+      bilibiliSession = bilibiliSession ?? null
+      return { platform: 'xiaohongshu', server: living.data.server, key: living.data.key }
+    }
+
     if (platform !== 'bilibili' || !autoStartBilibili) return null
 
     const account = accounts.get('bilibili')
@@ -79,6 +134,8 @@ const push = new PushService({
       cookie: cookieOf(secret),
       csrf: secret.bili_jct ?? '',
     })
+    bilibiliSession = { roomId: account.externalId, channel: started.channel }
+    createLogger(logs, 'B站').info('已调用开播接口')
     return started.target
   },
 })
@@ -142,6 +199,33 @@ try {
 }
 bus.subscribe((event) => irc.broadcast(event))
 
+// 停播时把 B 站那边也关掉，避免留下空直播间
+let wasLive = false
+orchestrator.onStatus((status) => {
+  const live = status.state === 'live'
+  if (wasLive && !live && bilibiliSession) {
+    const account = accounts.get('bilibili')
+    const secret = accounts.secret('bilibili')
+    if (account && secret) {
+      void bilibiliLive
+        .stopLive({
+          roomId: bilibiliSession.roomId,
+          cookie: cookieOf(secret),
+          csrf: secret.bili_jct ?? '',
+          channel: bilibiliSession.channel,
+        })
+        .then(() => createLogger(logs, 'B站').info('已调用关播接口'))
+        .catch((error: unknown) =>
+          createLogger(logs, 'B站').error('关播失败', {
+            reason: error instanceof Error ? error.message : String(error),
+          }),
+        )
+    }
+    bilibiliSession = null
+  }
+  wasLive = live
+})
+
 await printBanner({
   version: process.env.PS5LB_VERSION ?? '0.0.1',
   host: config.host,
@@ -154,6 +238,7 @@ createLogger(logs, '系统').info('服务已启动', { host: config.host, port: 
 
 const shutdown = async (signal: string): Promise<void> => {
   app.log.info({ signal }, '准备退出')
+  mediamtxSync.stop()
   danmaku.stop()
   push.stop()
   await irc.close()

@@ -8,6 +8,9 @@ import { useLiveStore } from '@/stores/live'
 /** 小红书：cookie 登录 + 每场开播的 6 位开播码 */
 export function XiaohongshuLogin({ loggedIn }: { loggedIn: boolean }) {
   const refresh = useLiveStore((state) => state.refresh)
+  const pendingEnable = useLiveStore((state) => state.pendingEnable)
+  const toggle = useLiveStore((state) => state.toggle)
+  const clearPending = useLiveStore((state) => state.clearPending)
   const [cookie, setCookie] = useState('')
   const [code, setCode] = useState('')
   const [message, setMessage] = useState('')
@@ -28,6 +31,10 @@ export function XiaohongshuLogin({ loggedIn }: { loggedIn: boolean }) {
         return
       }
       await refresh()
+      if (path.includes('login') && pendingEnable === 'xiaohongshu') {
+        await toggle('xiaohongshu', true)
+        clearPending()
+      }
       setMessage(path.includes('code') ? '开播码兑换成功' : '登录成功')
       if (path.includes('code')) setCode('')
       else setCookie('')
@@ -47,32 +54,31 @@ export function XiaohongshuLogin({ loggedIn }: { loggedIn: boolean }) {
           className="w-full resize-none font-mono text-[11px]"
         />
         <Button
-          size="sm"
           variant="secondary"
           className="self-start"
           disabled={busy || cookie.trim().length < 10}
           onClick={() => void post('/api/platforms/xiaohongshu/login', { cookie: cookie.trim() })}
         >
-          <LogIn size={14} />
+          <LogIn />
           {loggedIn ? '更换 cookie' : '用 cookie 登录'}
         </Button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <Input
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
           placeholder="6 位开播码"
           inputMode="numeric"
-          className="flex-1 font-mono tracking-widest"
+          className="h-7.5 flex-1 font-mono tracking-widest"
         />
         <Button
-          size="sm"
           variant="secondary"
+          className="h-7.5 sm:h-7.5"
           disabled={busy || code.length !== 6 || !loggedIn}
           onClick={() => void post('/api/platforms/xiaohongshu/code', { code })}
         >
-          <KeyRound size={14} />
+          <KeyRound />
           兑换
         </Button>
       </div>

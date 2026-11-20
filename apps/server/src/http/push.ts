@@ -2,6 +2,7 @@ import { platformSchema } from '@ps5lb/shared'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import type { LogService } from '@/logger'
+import type { Orchestrator } from '@/orchestrator'
 import type { PushTargetsStore } from '@/push/targets-store'
 
 const bodySchema = z.object({
@@ -13,6 +14,7 @@ export function registerPushRoutes(
   app: FastifyInstance,
   store: PushTargetsStore,
   logs: LogService,
+  orchestrator: Orchestrator,
 ): void {
   app.get('/api/push/targets', async () => ({ ok: true, targets: store.snapshot() }))
 
@@ -24,6 +26,8 @@ export function registerPushRoutes(
       return { ok: false, error: '平台或地址不正确' }
     }
     store.set(platform.data, { server: body.data.server, key: body.data.key })
+    // 直播中补填地址也要立刻生效
+    orchestrator.refresh()
     logs.write('info', platform.data === 'bilibili' ? 'B站' : '小红书', '已更新推流地址', {
       server: body.data.server,
     })

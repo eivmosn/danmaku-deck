@@ -75,6 +75,7 @@ export function registerBilibiliLoginRoutes(app: FastifyInstance, deps: Bilibili
           secret: result.credentials,
         })
         deps.orchestrator.setPlatform('bilibili', { accountName: profile.name })
+        deps.orchestrator.refresh()
         deps.logs.write('info', 'B站', `登录成功：${profile.name}`, { uid: profile.uid })
         return { ok: true, state: 'success', account }
       } catch (error) {

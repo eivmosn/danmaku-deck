@@ -22,6 +22,9 @@ interface PollResponse {
 
 export function BilibiliLogin({ loggedIn }: { loggedIn: boolean }) {
   const refresh = useLiveStore((state) => state.refresh)
+  const pendingEnable = useLiveStore((state) => state.pendingEnable)
+  const toggle = useLiveStore((state) => state.toggle)
+  const clearPending = useLiveStore((state) => state.clearPending)
   const [phase, setPhase] = useState<Phase>('idle')
   const [url, setUrl] = useState('')
   const [key, setKey] = useState('')
@@ -74,6 +77,11 @@ export function BilibiliLogin({ loggedIn }: { loggedIn: boolean }) {
           setMessage('登录成功')
           setKey('')
           await refresh()
+          // 用户是在点开关时被引导来登录的 → 登录成功替他打开
+          if (pendingEnable === 'bilibili') {
+            await toggle('bilibili', true)
+            clearPending()
+          }
         }
       } catch {
         // 单次失败不打断轮询
@@ -105,13 +113,8 @@ export function BilibiliLogin({ loggedIn }: { loggedIn: boolean }) {
       ) : null}
 
       <div className="flex gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => void start()}
-          disabled={phase === 'loading'}
-        >
-          {url ? <RotateCw size={14} /> : <QrCode size={14} />}
+        <Button variant="secondary" onClick={() => void start()} disabled={phase === 'loading'}>
+          {url ? <RotateCw /> : <QrCode />}
           {url ? '重新生成' : phase === 'loading' ? '生成中…' : loggedIn ? '更换账号' : '扫码登录'}
         </Button>
       </div>

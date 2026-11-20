@@ -13,7 +13,13 @@ import {
 } from './danmaku'
 
 const ROOM_INIT_URL = 'https://api.live.bilibili.com/room/v1/Room/room_init'
-const DANMU_INFO_URL = 'https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo'
+/**
+ * 弹幕服务器配置。
+ * 用 room/v1/Danmu/getConf：不需要登录、不触发风控（getDanmuInfo 会返回 -352）。
+ * 它只给 token，不给服务器列表，所以固定用官方默认弹幕入口。
+ */
+const DANMU_CONF_URL = 'https://api.live.bilibili.com/room/v1/Danmu/getConf'
+const DEFAULT_DANMAKU_WS = 'wss://broadcastlv.chat.bilibili.com/sub'
 
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36'
@@ -44,11 +50,11 @@ export class BilibiliDanmakuClient {
   }
 
   async connect(): Promise<void> {
-    const { roomId, cookie } = this.options
+    const { roomId } = this.options
     this.options.onState?.('connecting')
 
     const realRoom = await this.resolveRoom(roomId)
-    const info = await this.fetchDanmuInfo(realRoom, cookie)
+    const info = await this.fetchDanmuInfo(realRoom)
     if (this.closed) return
 
     const socket = new WebSocket(info.url)
@@ -143,24 +149,27 @@ export class BilibiliDanmakuClient {
     return id
   }
 
-  private async fetchDanmuInfo(
-    roomId: number,
-    cookie: string,
-  ): Promise<{ token: string; url: string }> {
-    const response = await this.fetchImpl(`${DANMU_INFO_URL}?id=${roomId}&type=0`, {
-      headers: {
-        'User-Agent': UA,
-        Referer: `https://live.bilibili.com/${roomId}`,
-        ...(cookie ? { Cookie: cookie } : {}),
+  private async fetchDanmuInfo(roomId: number): Promise<{ token: string; url: string }> {
+    const response = await this.fetchImpl(
+      `${DANMU_CONF_URL}?room_id=${roomId}&platform=pc&player=web`,
+      {
+        headers: { 'User-Agent': UA, Referer: `https://live.bilibili.com/${roomId}` },
       },
-    })
+    )
     const payload = (await response.json()) as {
       code?: number
+      msg?: string
+      message?: string
       data?: { token?: string; host_list?: Array<{ host: string; wss_port: number }> }
     }
     const token = payload.data?.token
     const host = payload.data?.host_list?.[0]
-    if (payload.code !== 0 || !token || !host) throw new Error('取不到弹幕服务器地址')
-    return { token, url: `wss://${host.host}:${host.wss_port}/sub` }
+    if (payload.code !== 0 || !token) {
+      const detail = payload.msg ?? payload.message ?? ''
+      throw new Error(`取不到弹幕 token（code=${payload.code ?? '-'} ${detail}）`)
+    }
+    // getConf 不带服务器列表时用默认入口
+    const url = host ? `wss://${host.host}:${host.wss_port}/sub` : DEFAULT_DANMAKU_WS
+    return { token, url }
   }
 }

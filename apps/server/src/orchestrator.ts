@@ -45,6 +45,11 @@ export class Orchestrator {
     }
   }
 
+  /** 重新广播当前快照：登录、切开关、改推流地址之后用它触发服务重新同步 */
+  refresh(): void {
+    this.emit()
+  }
+
   /** 订阅状态变化，返回取消订阅函数 */
   onStatus(listener: (status: Status) => void): () => void {
     this.listeners.add(listener)

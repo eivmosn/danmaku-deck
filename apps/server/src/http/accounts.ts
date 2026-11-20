@@ -34,6 +34,7 @@ export function registerAccountRoutes(
         return { ok: false, error: '当前没有登录' }
       }
       orchestrator.setPlatform(parsed.data, { accountName: null })
+      orchestrator.refresh()
       logs.write('info', PLATFORM_LABEL[parsed.data], '已退出登录')
       return { ok: true }
     },

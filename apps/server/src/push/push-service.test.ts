@@ -124,3 +124,49 @@ describe('PushService', () => {
     service.stop()
   })
 })
+
+describe('PushService 直播中登录', () => {
+  it('开播后才登录，会补上推流（回归：只在状态变化时启动）', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ps5lb-push-login-'))
+    const accounts = new AccountsStore({ dir })
+    const orchestrator = new Orchestrator({ now: fixedClock })
+    const logs = new LogService({ console: false, now: fixedClock })
+    const started: PushProcessPort[] = []
+    const service = new PushService({
+      orchestrator,
+      accounts,
+      logs,
+      inputUrl: (path) => `rtmp://127.0.0.1:1935/${path}`,
+      resolveTarget: async (platform) => ({
+        platform,
+        server: 'rtmp://push/',
+        key: 'k',
+      }),
+      createPusher: () => {
+        const pusher = { start: vi.fn(), stop: vi.fn(), running: true }
+        started.push(pusher)
+        return pusher
+      },
+    })
+
+    orchestrator.setPlatform('bilibili', { enabled: true })
+    service.start()
+    orchestrator.streamStarted('ps5')
+    await tick()
+    await tick()
+    expect(started).toHaveLength(0) // 没登录，先不推
+
+    accounts.signIn({
+      platform: 'bilibili',
+      displayName: '丘野',
+      externalId: '1',
+      secret: { SESSDATA: 'x' },
+    })
+    orchestrator.refresh() // 登录接口会调用它
+    await tick()
+    await tick()
+
+    expect(started).toHaveLength(1)
+    service.stop()
+  })
+})

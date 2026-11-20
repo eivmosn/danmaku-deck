@@ -42,6 +42,7 @@ export function registerXiaohongshuRoutes(app: FastifyInstance, deps: Xiaohongsh
       })
       deps.pushTargets.clear('xiaohongshu')
       deps.orchestrator.setPlatform('xiaohongshu', { accountName: account.displayName })
+      deps.orchestrator.refresh()
       deps.logs.write(
         'info',
         '小红书',
@@ -74,6 +75,7 @@ export function registerXiaohongshuRoutes(app: FastifyInstance, deps: Xiaohongsh
       }
 
       deps.pushTargets.set('xiaohongshu', result.data)
+      deps.orchestrator.refresh()
       deps.logs.write('info', '小红书', '开播码兑换成功，推流地址已保存')
       return { ok: true, server: result.data.server }
     },

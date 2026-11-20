@@ -2,6 +2,7 @@ import type { Platform } from '@ps5lb/shared'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 
 interface TargetRow {
   platform: Platform
@@ -67,25 +68,27 @@ export function PushTargets() {
               value={server[platform]}
               onChange={(event) => setServer({ ...server, [platform]: event.target.value })}
               placeholder="rtmp://…/live"
-              className="font-mono text-xs"
+              className="h-7.5 font-mono text-xs"
             />
-            <div className="flex gap-2">
-              <Input
+            <InputGroup>
+              <InputGroupInput
                 value={key[platform]}
                 onChange={(event) => setKey({ ...key, [platform]: event.target.value })}
                 placeholder={configured?.hasKey ? '已保存，留空则不修改' : '推流密钥'}
                 type="password"
-                className="flex-1 font-mono text-xs"
+                className="font-mono text-xs"
               />
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => void save(platform)}
-                disabled={!server[platform] || !key[platform]}
-              >
-                保存
-              </Button>
-            </div>
+              <InputGroupAddon align="inline-end">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void save(platform)}
+                  disabled={!server[platform] || !key[platform]}
+                >
+                  保存
+                </Button>
+              </InputGroupAddon>
+            </InputGroup>
           </div>
         )
       })}

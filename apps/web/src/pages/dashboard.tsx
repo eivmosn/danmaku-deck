@@ -10,7 +10,7 @@ import { useLiveStore } from '@/stores/live'
 import { formatUptime, STATE_TEXT } from '@/lib/format'
 
 export function DashboardPage() {
-  const { status, danmaku, toggle } = useLiveStore()
+  const { status, danmaku, toggle, requestEnable } = useLiveStore()
   const live = status?.state === 'live'
   const [needLogin, setNeedLogin] = useState<Platform | null>(null)
 
@@ -18,6 +18,7 @@ export function DashboardPage() {
     const account = status?.platforms.find((item) => item.platform === platform)?.accountName
     // 没登录就开推送 → 先引导登录，别让开关假装生效
     if (enabled && !account) {
+      requestEnable(platform)
       setNeedLogin(platform)
       return
     }

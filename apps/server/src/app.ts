@@ -17,6 +17,7 @@ import { registerXiaohongshuRoutes } from '@/http/xiaohongshu'
 import { MihomoClient } from '@/network/mihomo'
 import { XiaohongshuApi } from '@/platforms/xiaohongshu/api'
 import { PushTargetsStore } from '@/push/targets-store'
+import { SettingsStore } from '@/settings-store'
 import { registerStatusRoutes } from '@/http/status'
 import { createLogger, LogService } from '@/logger'
 import { Orchestrator } from '@/orchestrator'
@@ -31,6 +32,7 @@ export interface BuildAppOptions {
   accounts?: AccountsStore
   bilibiliAuth?: BilibiliAuthPort
   pushTargets?: PushTargetsStore
+  settings?: SettingsStore
   xiaohongshu?: XiaohongshuApi
   mihomo?: MihomoClient
   proxyConfig?: { configPath: string; writePath: string }
@@ -42,6 +44,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   const bus = options.bus ?? new DanmakuBus()
   const accounts = options.accounts ?? new AccountsStore()
   const pushTargets = options.pushTargets ?? new PushTargetsStore()
+  const settings = options.settings ?? new SettingsStore()
   const orchestrator =
     options.orchestrator ?? new Orchestrator({ logger: createLogger(logs, '收流') })
   const app = Fastify({ logger: options.logger ?? false })
@@ -50,9 +53,9 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerHookRoutes(app, orchestrator)
   registerLogRoutes(app, logs)
   registerEventRoutes(app, logs, bus)
-  registerPlatformRoutes(app, orchestrator)
+  registerPlatformRoutes(app, orchestrator, settings)
   registerAccountRoutes(app, accounts, orchestrator, logs)
-  registerPushRoutes(app, pushTargets, logs)
+  registerPushRoutes(app, pushTargets, logs, orchestrator)
   registerProxyRoutes(app, {
     mihomo: options.mihomo ?? new MihomoClient(),
     logs,

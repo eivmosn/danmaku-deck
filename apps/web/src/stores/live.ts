@@ -17,6 +17,10 @@ interface LiveStore {
   pushLog: (entry: LogEntry) => void
   toggle: (platform: Platform, enabled: boolean) => Promise<void>
   logout: (platform: Platform) => Promise<void>
+  /** 未登录时点了开关：登录成功后自动打开 */
+  pendingEnable: Platform | null
+  requestEnable: (platform: Platform) => void
+  clearPending: () => void
   serverUrl: string
   setServerUrl: (url: string) => void
 }
@@ -63,6 +67,12 @@ export const useLiveStore = create<LiveStore>((set, get) => ({
     const next = [...current, entry]
     set({ logs: next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next })
   },
+
+  pendingEnable: null,
+
+  requestEnable: (platform) => set({ pendingEnable: platform }),
+
+  clearPending: () => set({ pendingEnable: null }),
 
   logout: async (platform) => {
     const response = await fetch(`/api/accounts/${platform}/logout`, { method: 'POST' })

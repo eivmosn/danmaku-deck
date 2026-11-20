@@ -44895,6 +44895,7 @@ function zh(e, t, n, r) {
       return a.success
         ? t.signOut(a.data)
           ? (n.setPlatform(a.data, { accountName: null }),
+            n.refresh(),
             r.write(`info`, Rh[a.data], `已退出登录`),
             { ok: !0 })
           : (i.code(404), { ok: !1, error: `当前没有登录` })
@@ -44938,6 +44939,7 @@ function Bh(e, t) {
           })
         return (
           t.orchestrator.setPlatform(`bilibili`, { accountName: e.name }),
+          t.orchestrator.refresh(),
           t.logs.write(`info`, `B站`, `登录成功：${e.name}`, { uid: e.uid }),
           { ok: !0, state: `success`, account: n }
         )
@@ -45063,26 +45065,27 @@ function Yh(e, t) {
 }
 const Xh = Lm({ platform: Ph }),
   Zh = Lm({ enabled: km() })
-function Qh(e, t) {
-  e.patch(`/api/platforms/:platform`, async (e, n) => {
-    let r = Xh.safeParse(e.params),
-      i = Zh.safeParse(e.body)
-    return !r.success || !i.success
-      ? (n.code(400), { ok: !1, error: `参数不正确` })
-      : { ok: !0, platform: t.setPlatform(r.data.platform, { enabled: i.data.enabled }) }
+function Qh(e, t, n) {
+  e.patch(`/api/platforms/:platform`, async (e, r) => {
+    let i = Xh.safeParse(e.params),
+      a = Zh.safeParse(e.body)
+    if (!i.success || !a.success) return (r.code(400), { ok: !1, error: `参数不正确` })
+    let o = t.setPlatform(i.data.platform, { enabled: a.data.enabled })
+    return (n.setEnabled(i.data.platform, a.data.enabled), t.refresh(), { ok: !0, platform: o })
   })
 }
 const $h = Lm({ server: $().min(1), key: $().min(1) })
-function eg(e, t, n) {
+function eg(e, t, n, r) {
   ;(e.get(`/api/push/targets`, async () => ({ ok: !0, targets: t.snapshot() })),
-    e.put(`/api/push/targets/:platform`, async (e, r) => {
-      let i = Ph.safeParse(e.params.platform),
-        a = $h.safeParse(e.body)
-      return !i.success || !a.success
-        ? (r.code(400), { ok: !1, error: `平台或地址不正确` })
-        : (t.set(i.data, { server: a.data.server, key: a.data.key }),
-          n.write(`info`, i.data === `bilibili` ? `B站` : `小红书`, `已更新推流地址`, {
-            server: a.data.server,
+    e.put(`/api/push/targets/:platform`, async (e, i) => {
+      let a = Ph.safeParse(e.params.platform),
+        o = $h.safeParse(e.body)
+      return !a.success || !o.success
+        ? (i.code(400), { ok: !1, error: `平台或地址不正确` })
+        : (t.set(a.data, { server: o.data.server, key: o.data.key }),
+          r.refresh(),
+          n.write(`info`, a.data === `bilibili` ? `B站` : `小红书`, `已更新推流地址`, {
+            server: o.data.server,
           }),
           { ok: !0 })
     }),
@@ -45174,6 +45177,7 @@ function sg(e, t) {
     return (
       t.pushTargets.clear(`xiaohongshu`),
       t.orchestrator.setPlatform(`xiaohongshu`, { accountName: a.displayName }),
+      t.orchestrator.refresh(),
       t.logs.write(
         `info`,
         `小红书`,
@@ -45193,6 +45197,7 @@ function sg(e, t) {
           n.code(400),
           { ok: !1, error: a.detail ?? `兑换失败` })
         : (t.pushTargets.set(`xiaohongshu`, a.data),
+          t.orchestrator.refresh(),
           t.logs.write(`info`, `小红书`, `开播码兑换成功，推流地址已保存`),
           { ok: !0, server: a.data.server })
     }))
@@ -45326,7 +45331,35 @@ var pg = class {
       a(this.path, `${JSON.stringify(e, null, 2)}\n`, { mode: 384 }))
   }
 }
-function mg(e, t) {
+const mg = Lm({ version: qm(1), enabled: Um($(), km()).default({}) })
+var hg = class {
+  path
+  cache = null
+  constructor(e = {}) {
+    let t = e.dir ?? s(process.cwd(), `.ps5lb`)
+    this.path = s(t, `settings.json`)
+  }
+  enabled(e) {
+    return this.read().enabled[e] ?? !1
+  }
+  setEnabled(e, t) {
+    let n = this.read()
+    ;((n.enabled[e] = t), this.write(n))
+  }
+  read() {
+    return this.cache
+      ? this.cache
+      : n(this.path)
+        ? ((this.cache = mg.parse(JSON.parse(i(this.path, `utf8`)))), this.cache)
+        : ((this.cache = { version: 1, enabled: {} }), this.cache)
+  }
+  write(e) {
+    ;((this.cache = e),
+      r(o(this.path), { recursive: !0, mode: 448 }),
+      a(this.path, `${JSON.stringify(e, null, 2)}\n`, { mode: 384 }))
+  }
+}
+function gg(e, t) {
   ;(e.get(`/api/health`, async () => ({ ok: !0 })),
     e.get(`/api/status`, async () => t.snapshot()),
     e.get(`/api/events`, (e, n) => {
@@ -45345,7 +45378,7 @@ function mg(e, t) {
       })
     }))
 }
-var hg = /* @__PURE__ */ j(
+var _g = /* @__PURE__ */ j(
     /* @__PURE__ */ O((e, t) => {
       let n,
         { defineProperty: r, getPrototypeOf: i, setPrototypeOf: a, create: o, keys: s } = Object,
@@ -45514,68 +45547,68 @@ var hg = /* @__PURE__ */ j(
     })(),
     1,
   ),
-  gg = hg.default
+  vg = _g.default
 const {
-    Ansis: _g,
-    fg: vg,
-    bg: yg,
-    rgb: bg,
-    bgRgb: xg,
-    hex: Sg,
-    bgHex: Cg,
-    reset: wg,
-    inverse: Tg,
-    hidden: Eg,
-    visible: Dg,
-    link: Og,
-    bold: kg,
-    dim: Ag,
-    italic: jg,
-    underline: Mg,
-    strikethrough: Ng,
-    black: Pg,
-    red: Fg,
-    green: Ig,
-    yellow: Lg,
-    blue: Rg,
-    magenta: zg,
-    cyan: Bg,
-    white: Vg,
-    gray: Hg,
-    redBright: Ug,
-    greenBright: Wg,
-    yellowBright: Gg,
-    blueBright: Kg,
-    magentaBright: qg,
-    cyanBright: Jg,
-    whiteBright: Yg,
-    bgBlack: Xg,
-    bgRed: Zg,
-    bgGreen: Qg,
-    bgYellow: $g,
-    bgBlue: e_,
-    bgMagenta: t_,
-    bgCyan: n_,
-    bgWhite: r_,
-    bgGray: i_,
-    bgRedBright: a_,
-    bgGreenBright: o_,
-    bgYellowBright: s_,
-    bgBlueBright: c_,
-    bgMagentaBright: l_,
-    bgCyanBright: u_,
-    bgWhiteBright: d_,
-  } = hg.default,
-  f_ = { debug: `调试`, info: `信息`, warn: `警告`, error: `错误` },
-  p_ = {
-    debug: (e) => gg.gray(e),
-    info: (e) => gg.cyan(e),
-    warn: (e) => gg.yellow(e),
-    error: (e) => gg.red(e),
+    Ansis: yg,
+    fg: bg,
+    bg: xg,
+    rgb: Sg,
+    bgRgb: Cg,
+    hex: wg,
+    bgHex: Tg,
+    reset: Eg,
+    inverse: Dg,
+    hidden: Og,
+    visible: kg,
+    link: Ag,
+    bold: jg,
+    dim: Mg,
+    italic: Ng,
+    underline: Pg,
+    strikethrough: Fg,
+    black: Ig,
+    red: Lg,
+    green: Rg,
+    yellow: zg,
+    blue: Bg,
+    magenta: Vg,
+    cyan: Hg,
+    white: Ug,
+    gray: Wg,
+    redBright: Gg,
+    greenBright: Kg,
+    yellowBright: qg,
+    blueBright: Jg,
+    magentaBright: Yg,
+    cyanBright: Xg,
+    whiteBright: Zg,
+    bgBlack: Qg,
+    bgRed: $g,
+    bgGreen: e_,
+    bgYellow: t_,
+    bgBlue: n_,
+    bgMagenta: r_,
+    bgCyan: i_,
+    bgWhite: a_,
+    bgGray: o_,
+    bgRedBright: s_,
+    bgGreenBright: c_,
+    bgYellowBright: l_,
+    bgBlueBright: u_,
+    bgMagentaBright: d_,
+    bgCyanBright: f_,
+    bgWhiteBright: p_,
+  } = _g.default,
+  m_ = { debug: `调试`, info: `信息`, warn: `警告`, error: `错误` },
+  h_ = {
+    debug: (e) => vg.gray(e),
+    info: (e) => vg.cyan(e),
+    warn: (e) => vg.yellow(e),
+    error: (e) => vg.red(e),
   },
-  m_ = process.env.PS5LB_TZ ?? `Asia/Shanghai`,
-  h_ = new Intl.DateTimeFormat(`zh-CN`, {
-    timeZone: m_,
+  g_ = process.env.PS5LB_TZ ?? `Asia/Shanghai`,
+  __ = new Intl.DateTimeFormat(`zh-CN`, {
+    timeZone: g_,
     year: `numeric`,
     month: `2-digit`,
     day: `2-digit`,
@@ -45584,22 +45617,22 @@ const {
     second: `2-digit`,
     hourCycle: `h23`,
   })
-function g_(e) {
-  let t = Object.fromEntries(h_.formatToParts(e).map((e) => [e.type, e.value]))
+function v_(e) {
+  let t = Object.fromEntries(__.formatToParts(e).map((e) => [e.type, e.value]))
   return `${t.year}-${t.month}-${t.day} ${t.hour}:${t.minute}:${t.second}`
 }
-function __(e) {
-  return g_(e).slice(0, 10)
+function y_(e) {
+  return v_(e).slice(0, 10)
 }
-const v_ = {
-  系统: (e) => gg.bold(e),
-  收流: (e) => gg.magenta(e),
-  B站: (e) => gg.hex(`#fb7299`)(e),
-  小红书: (e) => gg.hex(`#ff2442`)(e),
-  代理: (e) => gg.blue(e),
-  推送: (e) => gg.green(e),
+const b_ = {
+  系统: (e) => vg.bold(e),
+  收流: (e) => vg.magenta(e),
+  B站: (e) => vg.hex(`#fb7299`)(e),
+  小红书: (e) => vg.hex(`#ff2442`)(e),
+  代理: (e) => vg.blue(e),
+  推送: (e) => vg.green(e),
 }
-var y_ = class {
+var x_ = class {
   capacity
   now
   toConsole
@@ -45628,7 +45661,7 @@ var y_ = class {
       a = {
         id: ++this.seq,
         at: i.toISOString(),
-        atLocal: g_(i),
+        atLocal: v_(i),
         level: e,
         scope: t,
         message: n,
@@ -45649,7 +45682,7 @@ var y_ = class {
   }
   persist(e) {
     if (!this.dir) return
-    let n = __(new Date(this.now()))
+    let n = y_(new Date(this.now()))
     try {
       t(s(this.dir, `${n}.jsonl`), `${JSON.stringify(e)}\n`)
     } catch (e) {
@@ -45661,14 +45694,14 @@ var y_ = class {
       process.stdout.write(`${JSON.stringify(e)}\n`)
       return
     }
-    let t = gg.gray(e.atLocal),
-      n = p_[e.level](f_[e.level]),
-      r = v_[e.scope](`[${e.scope}]`),
-      i = e.fields ? ` ${gg.gray(JSON.stringify(e.fields))}` : ``
+    let t = vg.gray(e.atLocal),
+      n = h_[e.level](m_[e.level]),
+      r = b_[e.scope](`[${e.scope}]`),
+      i = e.fields ? ` ${vg.gray(JSON.stringify(e.fields))}` : ``
     process.stdout.write(`${t} ${n} ${r} ${e.message}${i}\n`)
   }
 }
-function b_(e, t) {
+function S_(e, t) {
   return {
     debug: (n, r) => e.write(`debug`, t, n, r),
     info: (n, r) => e.write(`info`, t, n, r),
@@ -45676,8 +45709,8 @@ function b_(e, t) {
     error: (n, r) => e.write(`error`, t, n, r),
   }
 }
-const x_ = [`bilibili`, `xiaohongshu`]
-var S_ = class {
+const C_ = [`bilibili`, `xiaohongshu`]
+var w_ = class {
   now
   state = `idle`
   startedAt = null
@@ -45687,8 +45720,11 @@ var S_ = class {
   logger
   constructor(e = {}) {
     ;((this.now = e.now ?? Date.now), (this.logger = e.logger))
-    for (let e of x_)
+    for (let e of C_)
       this.platforms.set(e, { platform: e, enabled: !1, accountName: null, live: !1, error: null })
+  }
+  refresh() {
+    this.emit()
   }
   onStatus(e) {
     return (this.listeners.add(e), () => this.listeners.delete(e))
@@ -45736,67 +45772,68 @@ var S_ = class {
     for (let t of this.listeners) t(e)
   }
 }
-function C_(e = {}) {
-  let t = e.logs ?? new y_(),
+function T_(e = {}) {
+  let t = e.logs ?? new x_(),
     r = e.bus ?? new Dh(),
     i = e.accounts ?? new Eh(),
     a = e.pushTargets ?? new pg(),
-    o = e.orchestrator ?? new S_({ logger: b_(t, `收流`) }),
-    c = (0, bh.default)({ logger: e.logger ?? !1 })
+    o = e.settings ?? new hg(),
+    c = e.orchestrator ?? new w_({ logger: S_(t, `收流`) }),
+    l = (0, bh.default)({ logger: e.logger ?? !1 })
   return (
-    mg(c, o),
-    qh(c, o),
-    Yh(c, t),
-    Wh(c, t, r),
-    Qh(c, o),
-    zh(c, i, o, t),
-    eg(c, a, t),
-    ig(c, {
+    gg(l, c),
+    qh(l, c),
+    Yh(l, t),
+    Wh(l, t, r),
+    Qh(l, c, o),
+    zh(l, i, c, t),
+    eg(l, a, t, c),
+    ig(l, {
       mihomo: e.mihomo ?? new cg(),
       logs: t,
       configPath: e.proxyConfig?.configPath ?? `/root/.config/mihomo/config.yaml`,
       writePath: e.proxyConfig?.writePath ?? `./conf/mihomo.yaml`,
     }),
-    sg(c, {
+    sg(l, {
       api: e.xiaohongshu ?? new lg(),
       accounts: i,
       pushTargets: a,
-      orchestrator: o,
+      orchestrator: c,
       logs: t,
     }),
     e.webDir &&
       n(s(e.webDir, `index.html`)) &&
-      (c.register(yh.default, { root: e.webDir }),
-      c.setNotFoundHandler((e, t) =>
+      (l.register(yh.default, { root: e.webDir }),
+      l.setNotFoundHandler((e, t) =>
         e.url.startsWith(`/api/`)
           ? (t.code(404), { ok: !1, error: `接口不存在` })
           : t.sendFile(`index.html`),
       )),
-    Bh(c, { auth: e.bilibiliAuth ?? new Ah(), accounts: i, orchestrator: o, logs: t }),
-    c
+    Bh(l, { auth: e.bilibiliAuth ?? new Ah(), accounts: i, orchestrator: c, logs: t }),
+    l
   )
 }
-var w_ = { FULL_WIDTH: 0, FITTING: 1, SMUSHING: 2, CONTROLLED_SMUSHING: 3 },
-  T_ = class {
+var E_ = { FULL_WIDTH: 0, FITTING: 1, SMUSHING: 2, CONTROLLED_SMUSHING: 3 },
+  D_ = class {
     constructor() {
       ;((this.comment = ``), (this.numChars = 0), (this.options = {}))
     }
   },
-  E_ =
+  O_ =
     /* @__PURE__ */ `1Row.3-D.3D Diagonal.3D-ASCII.3x5.4Max.5 Line Oblique.AMC 3 Line.AMC 3 Liv1.AMC AAA01.AMC Neko.AMC Razor.AMC Razor2.AMC Slash.AMC Slider.AMC Thin.AMC Tubes.AMC Untitled.ANSI Compact.ANSI Regular.ANSI Shadow.ASCII 12.ASCII 9.ASCII New Roman.Acrobatic.Alligator.Alligator2.Alpha.Alphabet.Arrows.Avatar.B1FF.Babyface Lame.Babyface Leet.Banner.Banner3-D.Banner3.Banner4.Barbwire.Basic.Bear.Bell.Benjamin.Big ASCII 12.Big ASCII 9.Big Chief.Big Money-ne.Big Money-nw.Big Money-se.Big Money-sw.Big Mono 12.Big Mono 9.Big.Bigfig.Binary.Block.Blocks.Bloody.BlurVision ASCII.Bolger.Braced.Bright.Broadway KB.Broadway.Bubble.Bulbhead.Caligraphy.Caligraphy2.Calvin S.Cards.Catwalk.Chiseled.Chunky.Circle.Classy.Coder Mini.Coinstak.Cola.Colossal.Computer.Contessa.Contrast.Cosmike.Cosmike2.Crawford.Crawford2.Crazy.Cricket.Cursive.Cyberlarge.Cybermedium.Cybersmall.Cygnet.DANC4.DOS Rebel.DWhistled.Dancing Font.Decimal.Def Leppard.Delta Corps Priest 1.DiamFont.Diamond.Diet Cola.Digital.Doh.Doom.Dot Matrix.Double Shorts.Double.Dr Pepper.Efti Chess.Efti Font.Efti Italic.Efti Piti.Efti Robot.Efti Wall.Efti Water.Electronic.Elite.Emboss 2.Emboss.Epic.Fender.Filter.Fire Font-k.Fire Font-s.Flipped.Flower Power.Font Font.Four Tops.Fraktur.Fun Face.Fun Faces.Future Smooth.Future Thin.Future.Fuzzy.Georgi16.Georgia11.Ghost.Ghoulish.Glenyn.Goofy.Gothic.Graceful.Gradient.Graffiti.Greek.Heart Left.Heart Right.Henry 3D.Hex.Hieroglyphs.Hollywood.Horizontal Left.Horizontal Right.ICL-1900.Impossible.Invita.Isometric1.Isometric2.Isometric3.Isometric4.Italic.Ivrit.JS Block Letters.JS Bracket Letters.JS Capital Curves.JS Cursive.JS Stick Letters.Jacky.Jazmine.Jerusalem.Katakana.Kban.Keyboard.Knob.Konto Slant.Konto.LCD.Larry 3D 2.Larry 3D.Lean.Letter.Letters.Lil Devil.Line Blocks.Linguaholic Mini Block.Linguaholic Neon.Linguaholic Rounded.Linguaholic Shadow 3D.Linux.Lockergnome.Madrid.Marquee.Maxfour.Merlin1.Merlin2.Mike.Mini.Mirror.Mnemonic.Modular.Mono 12.Mono 9.Morse.Morse2.Moscow.Mshebrew210.Muzzle.NScript.NT Greek.NV Script.Nancyj-Fancy.Nancyj-Improved.Nancyj-Underlined.Nancyj.Nipples.O8.OS2.Octal.Ogre.Old Banner.Pagga.Patorjk's Cheese.Patorjk-HeX.Pawp.Peaks Slant.Peaks.Pebbles.Pepper.Poison.Puffy.Puzzle.Pyramid.Rammstein.Rebel.Rectangles.Red Phoenix.Relief.Relief2.Reverse.Roman.Rot13.Rotated.Rounded.Rowan Cap.Rozzo.RubiFont.Runic.Runyc.S Blood.SL Script.Santa Clara.Script.Serifcap.Shaded Blocky.Shadow.Shimrod.Short.Slant Relief.Slant.Slide.Small ASCII 12.Small ASCII 9.Small Block.Small Braille.Small Caps.Small Isometric1.Small Keyboard.Small Mono 12.Small Mono 9.Small Poison.Small Script.Small Shadow.Small Slant.Small Tengwar.Small.Soft.Speed.Spliff.Stacey.Stampate.Stampatello.Standard.Star Strips.Star Wars.Stellar.Stforek.Stick Letters.Stop.Straight.Stronger Than All.Sub-Zero.Swamp Land.Swan.Sweet.THIS.Tanja.Tengwar.Term.Terrace.Test1.The Edge.Thick.Thin.Thorned.Three Point.Ticks Slant.Ticks.Tiles.Tinker-Toy.Tmplr.Tombstone.Train.Trek.Tsalagi.Tubular.Twisted.Two Point.USA Flag.Univers.Upside Down Text.Varsity.Wavescape.Wavy.Weird.Wet Letter.Whimsy.WideTerm.Wow.miniwi`.split(
       `.`,
     ),
-  D_ = { 'ANSI-Compact': `ANSI Compact` },
-  O_ = (e) => (D_[e] ? D_[e] : e)
-function k_(e) {
+  k_ = { 'ANSI-Compact': `ANSI Compact` },
+  A_ = (e) => (k_[e] ? k_[e] : e)
+function j_(e) {
   return /[.*+?^${}()|[\]\\]/.test(e) ? `\\` + e : e
 }
-var A_ = (() => {
-    let { FULL_WIDTH: e = 0, FITTING: t, SMUSHING: n, CONTROLLED_SMUSHING: r } = w_,
+var M_ = (() => {
+    let { FULL_WIDTH: e = 0, FITTING: t, SMUSHING: n, CONTROLLED_SMUSHING: r } = E_,
       i = {},
       a = { font: `Standard`, fontPath: `./fonts`, fetchFontIfMissing: !0 }
     function o(e, t, n) {
-      let r = k_(e.trim().slice(-1)) || `@`,
+      let r = j_(e.trim().slice(-1)) || `@`,
         i = t === n - 1 ? RegExp(r + r + `?\\s*$`) : RegExp(r + `\\s*$`)
       return e.replace(i, ``)
     }
@@ -46254,7 +46291,7 @@ var A_ = (() => {
             `
 `,
           )
-        let r = O_(e),
+        let r = A_(e),
           a = n.split(`
 `),
           o = [],
@@ -46328,7 +46365,7 @@ var A_ = (() => {
         try {
           let n = await L.loadFont(e)
           if (!n) throw Error(`Error loading font.`)
-          let r = O_(e),
+          let r = A_(e),
             a = i[r] || {},
             o = [n, a.comment || ``]
           return (t && t(null, n, a.comment), o)
@@ -46357,7 +46394,7 @@ var A_ = (() => {
             `
 `,
           )
-        let r = new T_(),
+        let r = new D_(),
           a = t.split(`
 `),
           c = a.shift()
@@ -46436,7 +46473,7 @@ var A_ = (() => {
         })
       }),
       (L.loadFont = async function (e, t) {
-        let n = O_(e)
+        let n = A_(e)
         if (i[n]) {
           let e = i[n].options
           return (t && t(null, e), Promise.resolve(e))
@@ -46455,7 +46492,7 @@ var A_ = (() => {
         }
       }),
       (L.loadFontSync = function (e) {
-        let t = O_(e)
+        let t = A_(e)
         if (i[t]) return i[t].options
         throw Error(
           `Synchronous font loading is not implemented for the browser, it will only work for fonts already loaded.`,
@@ -46464,7 +46501,7 @@ var A_ = (() => {
       (L.preloadFonts = async function (e, t) {
         try {
           for (let t of e) {
-            let e = O_(t),
+            let e = A_(t),
               n = await fetch(`${a.fontPath}/${e}.flf`)
             if (!n.ok)
               throw Error(
@@ -46485,31 +46522,31 @@ var A_ = (() => {
       }),
       (L.fonts = function (e) {
         return new Promise(function (t, n) {
-          ;(t(E_), e && e(null, E_))
+          ;(t(O_), e && e(null, O_))
         })
       }),
       (L.fontsSync = function () {
-        return E_
+        return O_
       }),
       (L.figFonts = i),
       L
     )
   })(),
-  j_ = import.meta.url ? l.dirname(h(import.meta.url)) : __dirname,
-  M_ = l.join(j_, `/../fonts/`),
-  N_ = A_
-;(N_.defaults({ fontPath: M_ }),
-  (N_.loadFont = function (e, t) {
-    let n = O_(e)
+  N_ = import.meta.url ? l.dirname(h(import.meta.url)) : __dirname,
+  P_ = l.join(N_, `/../fonts/`),
+  F_ = M_
+;(F_.defaults({ fontPath: P_ }),
+  (F_.loadFont = function (e, t) {
+    let n = A_(e)
     return new Promise((e, r) => {
-      N_.figFonts[n]
-        ? (t && t(null, N_.figFonts[n].options), e(N_.figFonts[n].options))
-        : c.readFile(l.join(N_.defaults().fontPath, n + `.flf`), { encoding: `utf-8` }, (i, a) => {
+      F_.figFonts[n]
+        ? (t && t(null, F_.figFonts[n].options), e(F_.figFonts[n].options))
+        : c.readFile(l.join(F_.defaults().fontPath, n + `.flf`), { encoding: `utf-8` }, (i, a) => {
             if (i) (t && t(i), r(i))
             else {
               a += ``
               try {
-                let r = N_.parseFont(n, a)
+                let r = F_.parseFont(n, a)
                 ;(t && t(null, r), e(r))
               } catch (e) {
                 let n = e instanceof Error ? e : Error(String(e))
@@ -46519,16 +46556,16 @@ var A_ = (() => {
           })
     })
   }),
-  (N_.loadFontSync = function (e) {
-    let t = O_(e)
-    if (N_.figFonts[t]) return N_.figFonts[t].options
-    let n = c.readFileSync(l.join(N_.defaults().fontPath, t + `.flf`), { encoding: `utf-8` }) + ``
-    return N_.parseFont(t, n)
+  (F_.loadFontSync = function (e) {
+    let t = A_(e)
+    if (F_.figFonts[t]) return F_.figFonts[t].options
+    let n = c.readFileSync(l.join(F_.defaults().fontPath, t + `.flf`), { encoding: `utf-8` }) + ``
+    return F_.parseFont(t, n)
   }),
-  (N_.fonts = function (e) {
+  (F_.fonts = function (e) {
     return new Promise((t, n) => {
       let r = []
-      c.readdir(N_.defaults().fontPath, (i, a) => {
+      c.readdir(F_.defaults().fontPath, (i, a) => {
         i
           ? (e && e(i), n(i))
           : (a.forEach((e) => {
@@ -46539,32 +46576,32 @@ var A_ = (() => {
       })
     })
   }),
-  (N_.fontsSync = function () {
+  (F_.fontsSync = function () {
     let e = []
     return (
-      c.readdirSync(N_.defaults().fontPath).forEach((t) => {
+      c.readdirSync(F_.defaults().fontPath).forEach((t) => {
         ;/\.flf$/.test(t) && e.push(t.replace(/\.flf$/, ``))
       }),
       e
     )
   }))
-function P_(e) {
+function I_(e) {
   return new Promise((t) => {
-    N_.text(e, { font: `ANSI Shadow` }, (n, r) => {
+    F_.text(e, { font: `ANSI Shadow` }, (n, r) => {
       t(n ? e : (r ?? e))
     })
   })
 }
-async function F_(e) {
+async function L_(e) {
   if (process.env.PS5LB_NO_BANNER === `1` || !process.stdout.isTTY) return
-  let t = await P_(`PS5`),
+  let t = await I_(`PS5`),
     n = [
-      gg.cyan(t.replace(/\s+$/, ``)),
-      `  ${gg.bold(`LIVE BRIDGE`)} ${gg.dim(`v${e.version}`)}`,
+      vg.cyan(t.replace(/\s+$/, ``)),
+      `  ${vg.bold(`LIVE BRIDGE`)} ${vg.dim(`v${e.version}`)}`,
       ``,
-      `  ${gg.dim(`监听`)}   ${gg.green(`http://${e.host}:${e.port}`)}`,
-      `  ${gg.dim(`模式`)}   ${e.mode}`,
-      `  ${gg.dim(`状态`)}   ${gg.yellow(`idle`)} ${gg.dim(`（等 PS5 推流）`)}`,
+      `  ${vg.dim(`监听`)}   ${vg.green(`http://${e.host}:${e.port}`)}`,
+      `  ${vg.dim(`模式`)}   ${e.mode}`,
+      `  ${vg.dim(`状态`)}   ${vg.yellow(`idle`)} ${vg.dim(`（等 PS5 推流）`)}`,
       ``,
     ]
   process.stdout.write(
@@ -46572,7 +46609,7 @@ async function F_(e) {
 `)}\n`,
   )
 }
-const I_ = Lm({
+const R_ = Lm({
   host: $().default(`0.0.0.0`),
   port: _h().int().positive().default(8787),
   logLevel: Gm([`fatal`, `error`, `warn`, `info`, `debug`, `trace`]).default(`info`),
@@ -46589,8 +46626,8 @@ const I_ = Lm({
   mihomoUrl: $().default(`http://127.0.0.1:9090`),
   mihomoGroup: $().default(`AUTO`),
 })
-function L_(e = process.env) {
-  return I_.parse({
+function z_(e = process.env) {
+  return R_.parse({
     host: e.PS5LB_HOST,
     port: e.PS5LB_PORT,
     logLevel: e.PS5LB_LOG_LEVEL,
@@ -46608,10 +46645,10 @@ function L_(e = process.env) {
     mihomoGroup: e.PS5LB_MIHOMO_GROUP,
   })
 }
-function R_(e) {
+function B_(e) {
   return e.replace(/[\r\n]/g, ` `).slice(0, 300)
 }
-var z_ = class {
+var V_ = class {
   server = null
   sessions = /* @__PURE__ */ new Set()
   pendingEnters = []
@@ -46665,9 +46702,9 @@ var z_ = class {
     this.send(`入场`, n)
   }
   send(e, t) {
-    let n = R_(e).replace(/\s+/g, ``) || `观众`
+    let n = B_(e).replace(/\s+/g, ``) || `观众`
     for (let e of this.sessions)
-      e.channel && e.socket.write(`:${n}!${n}@tmi.twitch.tv PRIVMSG ${e.channel} :${R_(t)}\r\n`)
+      e.channel && e.socket.write(`:${n}!${n}@tmi.twitch.tv PRIVMSG ${e.channel} :${B_(t)}\r\n`)
   }
   handleClient(e) {
     let t = { socket: e, nick: `justinfan`, channel: null, buffer: `` }
@@ -46720,46 +46757,46 @@ var z_ = class {
     e.socket.destroyed || e.socket.write(`${t}\r\n`)
   }
 }
-function B_(e) {
+function H_(e) {
   return Object.keys(e)
     .toSorted()
-    .map((t) => `${V_(t)}=${V_(String(e[t]))}`)
+    .map((t) => `${U_(t)}=${U_(String(e[t]))}`)
     .join(`&`)
 }
-function V_(e) {
+function U_(e) {
   return encodeURIComponent(e)
     .replace(/%20/g, `+`)
     .replace(/[!'()*]/g, (e) => `%${e.charCodeAt(0).toString(16).toUpperCase()}`)
 }
-function H_(e, t, n) {
+function W_(e, t, n) {
   let r = { ...e, appkey: t },
-    i = B_(r),
+    i = H_(r),
     a = f(`md5`).update(`${i}${n}`).digest(`hex`)
   return { ...r, sign: a }
 }
-function U_(e) {
-  return H_(e, `aae92bc66f3edfab`, `af125a0d5279fd576c1b4418a3e8276d`)
+function G_(e) {
+  return W_(e, `aae92bc66f3edfab`, `af125a0d5279fd576c1b4418a3e8276d`)
 }
-function W_(e) {
-  return H_(e, `aa1e74ee4874176e`, `54e6a9a31b911cd5fc0daa66ebf94bc4`)
+function K_(e) {
+  return W_(e, `aa1e74ee4874176e`, `54e6a9a31b911cd5fc0daa66ebf94bc4`)
 }
-const G_ = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36`
-var K_ = class {
+const q_ = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36`
+var J_ = class {
   fetchImpl
   constructor(e = fetch) {
     this.fetchImpl = e
   }
   async startLive(e) {
     let t = e.fetchImpl ?? this.fetchImpl,
-      n = { 'User-Agent': G_, Cookie: e.cookie, Referer: `https://live.bilibili.com/` },
+      n = { 'User-Agent': q_, Cookie: e.cookie, Referer: `https://live.bilibili.com/` },
       r = await this.roomIdByUid(e.uid, t, n)
     if (!r) throw Error(`拿不到直播间号`)
     let i = await this.serverTime(t, n)
     await t(
-      `https://api.live.bilibili.com/xlive/app-blink/v1/liveVersionInfo/getHomePageLiveVersion?${new URLSearchParams(U_({ system_version: 2, ts: i })).toString()}`,
+      `https://api.live.bilibili.com/xlive/app-blink/v1/liveVersionInfo/getHomePageLiveVersion?${new URLSearchParams(G_({ system_version: 2, ts: i })).toString()}`,
       { headers: n },
     )
-    let a = W_({
+    let a = K_({
         room_id: r,
         platform: `web_electron_link`,
         area_v2: e.areaId ?? `236`,
@@ -46784,18 +46821,18 @@ var K_ = class {
   async stopLive(e) {
     let t =
         e.channel === `electron`
-          ? W_({
+          ? K_({
               room_id: e.roomId,
               platform: `web_electron_link`,
               csrf_token: e.csrf,
               csrf: e.csrf,
             })
-          : U_({ room_id: e.roomId, platform: `pc_link`, csrf_token: e.csrf, csrf: e.csrf }),
+          : G_({ room_id: e.roomId, platform: `pc_link`, csrf_token: e.csrf, csrf: e.csrf }),
       n = await (
         await this.fetchImpl(`https://api.live.bilibili.com/room/v1/Room/stopLive`, {
           method: `POST`,
           headers: {
-            'User-Agent': G_,
+            'User-Agent': q_,
             Cookie: e.cookie,
             Referer: `https://live.bilibili.com/`,
             'Content-Type': `application/x-www-form-urlencoded`,
@@ -46820,7 +46857,7 @@ var K_ = class {
     return n.data.now
   }
 }
-function q_(e) {
+function Y_(e) {
   if (e.length < 12) return null
   let t = e.readUInt16BE(2),
     n = e.readUInt16BE(4)
@@ -46841,7 +46878,7 @@ function q_(e) {
   let a = e.readUInt16BE(r)
   return { id: e.readUInt16BE(0), name: i.join(`.`).toLowerCase(), type: a, questionEnd: r + 4 }
 }
-function J_(e, t, n = 60) {
+function X_(e, t, n = 60) {
   let r = Buffer.alloc(12)
   ;(r.writeUInt16BE(e.id, 0),
     r.writeUInt16BE(33152, 2),
@@ -46861,10 +46898,10 @@ function J_(e, t, n = 60) {
     (i[13] = a[1] ?? 0),
     (i[14] = a[2] ?? 0),
     (i[15] = a[3] ?? 0),
-    Buffer.concat([r, Y_(e), i])
+    Buffer.concat([r, Z_(e), i])
   )
 }
-function Y_(e) {
+function Z_(e) {
   let t = e.name.split(`.`).filter(Boolean),
     n = []
   for (let e of t) {
@@ -46875,10 +46912,10 @@ function Y_(e) {
   let r = Buffer.alloc(4)
   return (r.writeUInt16BE(e.type, 0), r.writeUInt16BE(1, 2), n.push(r), Buffer.concat(n))
 }
-function X_(e, t) {
+function Q_(e, t) {
   return t.some((t) => e === t || e.endsWith(`.${t}`))
 }
-var Z_ = class {
+var $_ = class {
   socket = null
   options
   constructor(e) {
@@ -46906,11 +46943,11 @@ var Z_ = class {
     ;(this.socket?.close(), (this.socket = null))
   }
   async handle(e, t, n) {
-    let r = q_(e)
+    let r = Y_(e)
     if (!r) return
-    let i = r.type === 1 && X_(r.name, this.options.hijackDomains)
+    let i = r.type === 1 && Q_(r.name, this.options.hijackDomains)
     if ((this.options.onResolve?.(r.name, i), i)) {
-      this.socket?.send(J_(r, this.options.hijackIp), n, t)
+      this.socket?.send(X_(r, this.options.hijackIp), n, t)
       return
     }
     if (r.type === 41) return
@@ -46933,7 +46970,7 @@ var Z_ = class {
     })
   }
 }
-function Q_(e) {
+function ev(e) {
   if (e.length < 5) return null
   if (e[0] !== 22) return { sni: null, recordLength: 0 }
   let t = 5 + e.readUInt16BE(3)
@@ -46969,10 +47006,10 @@ function Q_(e) {
   }
   return { sni: null, recordLength: t }
 }
-function $_(e, t) {
+function tv(e, t) {
   return t.some((t) => e === t || e.endsWith(`.${t}`))
 }
-function ev(e, t) {
+function nv(e, t) {
   return new Promise((n, r) => {
     let i = g(e.port, e.host),
       a = `greeting`,
@@ -47008,7 +47045,7 @@ function ev(e, t) {
       i.once(`error`, (e) => r(e)))
   })
 }
-var tv = class {
+var rv = class {
   server = null
   options
   constructor(e) {
@@ -47035,7 +47072,7 @@ var tv = class {
       n = !1,
       r = (i) => {
         t = Buffer.concat([t, i])
-        let a = Q_(t)
+        let a = ev(t)
         if (!a) return
         ;((n = !0), e.off(`data`, r), e.pause())
         let o = a.sni
@@ -47048,13 +47085,13 @@ var tv = class {
       }, 1e4).unref())
   }
   async route(e, t, n) {
-    let r = $_(t, this.options.proxyDomains)
+    let r = tv(t, this.options.proxyDomains)
     this.options.onRoute?.(t, r)
     let i = null,
       a = !1
     if (
       r &&
-      ((i = await ev(this.options.proxy, { host: t, port: 443 }).catch(() => null)),
+      ((i = await nv(this.options.proxy, { host: t, port: 443 }).catch(() => null)),
       (a = i !== null),
       !i && !this.options.fallbackDirect)
     )
@@ -47076,7 +47113,7 @@ var tv = class {
     ;(e.once(`close`, o), i.once(`close`, o), e.once(`error`, o), i.once(`error`, o))
   }
 }
-function nv(e, t) {
+function iv(e, t) {
   return [
     `-hide_banner`,
     `-loglevel`,
@@ -47090,7 +47127,7 @@ function nv(e, t) {
     `${t.server.replace(/\/$/, ``)}/${t.key}`,
   ]
 }
-var rv = class {
+var av = class {
   child = null
   options
   constructor(e) {
@@ -47103,7 +47140,7 @@ var rv = class {
     if (this.child) return
     let e = (this.options.spawnImpl ?? y)(
       this.options.ffmpegPath ?? `ffmpeg`,
-      nv(this.options.input, this.options.target),
+      iv(this.options.input, this.options.target),
       { stdio: [`ignore`, `ignore`, `pipe`] },
     )
     ;((this.child = e),
@@ -47120,8 +47157,8 @@ var rv = class {
     e && ((this.child = null), e.kill(`SIGTERM`))
   }
 }
-const iv = { bilibili: `B站`, xiaohongshu: `小红书` }
-var av = class {
+const ov = { bilibili: `B站`, xiaohongshu: `小红书` }
+var sv = class {
   deps
   pushers = /* @__PURE__ */ new Map()
   unsubscribe = null
@@ -47154,7 +47191,7 @@ var av = class {
     }
   }
   async startPlatform(e) {
-    let t = iv[e]
+    let t = ov[e]
     if (!this.deps.accounts.get(e)) {
       this.deps.logs.write(`warn`, t, `未登录，跳过推流`)
       return
@@ -47163,7 +47200,7 @@ var av = class {
     try {
       n = await this.deps.resolveTarget(e)
     } catch (e) {
-      this.deps.logs.write(`error`, t, `取推流地址失败：${ov(e)}`)
+      this.deps.logs.write(`error`, t, `取推流地址失败：${cv(e)}`)
       return
     }
     if (!n) {
@@ -47173,7 +47210,7 @@ var av = class {
     let r = this.deps.orchestrator.snapshot().streamPath ?? ``,
       i =
         this.deps.createPusher?.(n) ??
-        new rv({
+        new av({
           input: this.deps.inputUrl(r),
           target: n,
           onLog: (e) => this.deps.logs.write(`debug`, `推送`, `${t} ${e}`),
@@ -47191,14 +47228,62 @@ var av = class {
       this.deps.logs.write(`info`, t, `已开始推流`, { server: n.server }))
   }
   stopAll() {
-    for (let [e, t] of this.pushers) (t.stop(), this.deps.logs.write(`info`, iv[e], `已停止推流`))
+    for (let [e, t] of this.pushers) (t.stop(), this.deps.logs.write(`info`, ov[e], `已停止推流`))
     this.pushers.clear()
   }
 }
-function ov(e) {
+function cv(e) {
   return e instanceof Error ? e.message : String(e)
 }
-function sv(e) {
+var lv = class {
+  timer = null
+  options
+  constructor(e) {
+    this.options = {
+      orchestrator: e.orchestrator,
+      apiUrl: e.apiUrl ?? `http://127.0.0.1:19997`,
+      intervalMs: e.intervalMs ?? 5e3,
+      fetchImpl: e.fetchImpl ?? fetch,
+      onChange: e.onChange,
+    }
+  }
+  start() {
+    this.timer ||= (this.tick(), setInterval(() => void this.tick(), this.options.intervalMs))
+  }
+  stop() {
+    ;(this.timer && clearInterval(this.timer), (this.timer = null))
+  }
+  async tick() {
+    let e = await this.activePaths()
+    if (e === null) return
+    let t = this.options.orchestrator.snapshot().streamPath ?? ``,
+      n = e[0]
+    e.length > 0 && !t && n
+      ? (this.options.orchestrator.streamStarted(n), this.options.onChange?.(n, !0))
+      : e.length === 0 && t
+        ? (this.options.orchestrator.streamStopped(), this.options.onChange?.(t, !1))
+        : e.length > 0 &&
+          t &&
+          !e.includes(t) &&
+          n &&
+          (this.options.orchestrator.streamStopped(),
+          this.options.orchestrator.streamStarted(n),
+          this.options.onChange?.(n, !0))
+  }
+  async activePaths() {
+    try {
+      let e = await this.options.fetchImpl(`${this.options.apiUrl}/v3/paths/list`, {
+        signal: AbortSignal.timeout(3e3),
+      })
+      return e.ok
+        ? ((await e.json()).items ?? []).filter((e) => e.ready === !0 && e.name).map((e) => e.name)
+        : null
+    } catch {
+      return null
+    }
+  }
+}
+function uv(e) {
   let t = [],
     n = 0
   for (; n + 16 <= e.length;) {
@@ -47210,7 +47295,7 @@ function sv(e) {
   }
   return { packets: t, consumed: n }
 }
-function cv(e) {
+function dv(e) {
   try {
     return e.version === 3 || e.version === 2
       ? JSON.parse(b(e.body).toString(`utf8`))
@@ -47219,7 +47304,7 @@ function cv(e) {
     return null
   }
 }
-function lv(e, t) {
+function fv(e, t) {
   let n = Buffer.from(typeof t == `string` ? t : JSON.stringify(t)),
     r = Buffer.alloc(16)
   return (
@@ -47231,13 +47316,13 @@ function lv(e, t) {
     Buffer.concat([r, n])
   )
 }
-const uv = { 1: `总督`, 2: `提督`, 3: `舰长` },
-  dv = {
+const pv = { 1: `总督`, 2: `提督`, 3: `舰长` },
+  mv = {
     1: { kind: `enter`, text: `进入了直播间` },
     2: { kind: `follow`, text: `关注了主播` },
     3: { kind: `like`, text: `分享了直播间` },
   }
-function fv(e, t = /* @__PURE__ */ new Date().toISOString()) {
+function hv(e, t = /* @__PURE__ */ new Date().toISOString()) {
   if (!e || typeof e != `object`) return null
   let n = e,
     r = n.cmd ?? ``
@@ -47273,7 +47358,7 @@ function fv(e, t = /* @__PURE__ */ new Date().toISOString()) {
       platform: `bilibili`,
       kind: `guard`,
       user: r,
-      text: uv[i] ?? `舰长`,
+      text: pv[i] ?? `舰长`,
       count: Number(e.num ?? 1),
       at: t,
     }
@@ -47296,15 +47381,15 @@ function fv(e, t = /* @__PURE__ */ new Date().toISOString()) {
   if (r.startsWith(`INTERACT_WORD`)) {
     let e = n.data ?? {},
       r = String(e.uname ?? ``),
-      i = dv[Number(e.msg_type ?? 0)]
+      i = mv[Number(e.msg_type ?? 0)]
     return !r || !i
       ? null
       : { platform: `bilibili`, kind: i.kind, user: r, text: i.text, count: 0, at: t }
   }
   return null
 }
-const pv = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36`
-var mv = class {
+const gv = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36`
+var _v = class {
   socket = null
   heartbeat = null
   pending = Buffer.alloc(0)
@@ -47318,7 +47403,7 @@ var mv = class {
     let { roomId: e, cookie: t } = this.options
     this.options.onState?.(`connecting`)
     let n = await this.resolveRoom(e),
-      r = await this.fetchDanmuInfo(n, t)
+      r = await this.fetchDanmuInfo(n)
     if (this.closed) return
     let i = new WebSocket(r.url)
     ;((this.socket = i),
@@ -47329,11 +47414,11 @@ var mv = class {
             once: !0,
           }))
       }),
-      i.send(lv(7, { uid: 0, roomid: n, protover: 3, platform: `web`, type: 2, key: r.token })))
+      i.send(fv(7, { uid: 0, roomid: n, protover: 3, platform: `web`, type: 2, key: r.token })))
     let a = this.options.heartbeatMs ?? 3e4
     ;((this.heartbeat = setInterval(() => {
       try {
-        i.send(lv(2, `[object Object]`))
+        i.send(fv(2, `[object Object]`))
       } catch {}
     }, a)),
       i.addEventListener(`message`, (e) => this.handleMessage(e.data)),
@@ -47356,17 +47441,17 @@ var mv = class {
   handleMessage(e) {
     let t = Buffer.from(e)
     this.pending = Buffer.concat([this.pending, t])
-    let { packets: n, consumed: r } = sv(this.pending)
+    let { packets: n, consumed: r } = uv(this.pending)
     r > 0 && (this.pending = this.pending.subarray(r))
     for (let e of n)
       e.op === 8 ? this.options.onState?.(`online`) : e.op !== 3 && e.op === 5 && this.emitFrom(e)
   }
   emitFrom(e) {
-    let t = cv(e)
+    let t = dv(e)
     if (!t) return
     let n = Array.isArray(t) ? t : [t]
     for (let e of n) {
-      let t = fv(e)
+      let t = hv(e)
       t && this.options.onEvent(t)
     }
   }
@@ -47374,34 +47459,48 @@ var mv = class {
     let t = await (
         await this.fetchImpl(
           `https://api.live.bilibili.com/room/v1/Room/room_init?id=${encodeURIComponent(e)}`,
-          { headers: { 'User-Agent': pv, Referer: `https://live.bilibili.com/` } },
+          { headers: { 'User-Agent': gv, Referer: `https://live.bilibili.com/` } },
         )
       ).json(),
       n = t.data?.room_id
     if (t.code !== 0 || !n) throw Error(`取不到 B 站房间号`)
     return n
   }
-  async fetchDanmuInfo(e, t) {
-    let n = await (
+  async fetchDanmuInfo(e) {
+    let t = await (
         await this.fetchImpl(
-          `https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=${e}&type=0`,
-          {
-            headers: {
-              'User-Agent': pv,
-              Referer: `https://live.bilibili.com/${e}`,
-              ...(t ? { Cookie: t } : {}),
-            },
-          },
+          `https://api.live.bilibili.com/room/v1/Danmu/getConf?room_id=${e}&platform=pc&player=web`,
+          { headers: { 'User-Agent': gv, Referer: `https://live.bilibili.com/${e}` } },
         )
       ).json(),
-      r = n.data?.token,
-      i = n.data?.host_list?.[0]
-    if (n.code !== 0 || !r || !i) throw Error(`取不到弹幕服务器地址`)
-    return { token: r, url: `wss://${i.host}:${i.wss_port}/sub` }
+      n = t.data?.token,
+      r = t.data?.host_list?.[0]
+    if (t.code !== 0 || !n) {
+      let e = t.msg ?? t.message ?? ``
+      throw Error(`取不到弹幕 token（code=${t.code ?? `-`} ${e}）`)
+    }
+    return {
+      token: n,
+      url: r ? `wss://${r.host}:${r.wss_port}/sub` : `wss://broadcastlv.chat.bilibili.com/sub`,
+    }
   }
 }
-const hv = { enter: `进入了直播间`, follow: `关注了主播`, like: `点了赞` }
-function gv(e) {
+async function vv(e, t = fetch) {
+  let n = await (
+    await t(
+      `https://api.live.bilibili.com/room/v2/Room/room_id_by_uid?uid=${encodeURIComponent(e)}`,
+      {
+        headers: {
+          'User-Agent': `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36`,
+          Referer: `https://live.bilibili.com/`,
+        },
+      },
+    )
+  ).json()
+  return n.code === 0 ? (n.data?.room_id ?? 0) : 0
+}
+const yv = { enter: `进入了直播间`, follow: `关注了主播`, like: `点了赞` }
+function bv(e) {
   let t = e.trim()
   if (!t.startsWith(`{`)) return null
   let n
@@ -47416,7 +47515,7 @@ function gv(e) {
   let a = n.gift?.name ?? ``,
     o = Number(n.gift?.count ?? 0),
     s = a ? (o > 1 ? `${a} ×${o}` : a) : ``,
-    c = (n.text ?? ``).trim() || s || hv[r] || ``
+    c = (n.text ?? ``).trim() || s || yv[r] || ``
   if (!c) return null
   let l =
     r === `gift`
@@ -47439,7 +47538,7 @@ function gv(e) {
         at: n.time ?? /* @__PURE__ */ new Date().toISOString(),
       }
 }
-var _v = class {
+var xv = class {
   child = null
   buffer = ``
   stopped = !1
@@ -47481,23 +47580,23 @@ var _v = class {
     let t = this.buffer.split(/\r?\n/)
     this.buffer = t.pop() ?? ``
     for (let e of t) {
-      let t = gv(e)
+      let t = bv(e)
       t && this.options.onEvent(t)
     }
   }
 }
-const vv = { bilibili: `B站`, xiaohongshu: `小红书` }
-function yv(e) {
+const Sv = { bilibili: `B站`, xiaohongshu: `小红书` }
+function Cv(e) {
   return e.split(`?`)[0] ?? ``
 }
-function bv(e) {
+function wv(e) {
   return e
     ? Object.entries(e)
         .map(([e, t]) => `${e}=${t}`)
         .join(`; `)
     : ``
 }
-var xv = class {
+var Tv = class {
   deps
   clients = /* @__PURE__ */ new Map()
   unsubscribe = null
@@ -47534,13 +47633,26 @@ var xv = class {
     }
   }
   async connectPlatform(e) {
-    let t = vv[e],
+    let t = Sv[e],
       n = this.deps.accounts.get(e)
     if (!n) return
-    let r = e === `bilibili` ? bv(this.deps.accounts.secret(`bilibili`)) : ``,
-      i = e === `bilibili` ? n.externalId : yv(this.deps.pushTargets.get(`xiaohongshu`)?.key ?? ``)
-    if (e === `xiaohongshu` && !i) {
-      this.deps.logs.write(`warn`, t, `还没有本场推流地址，先兑换开播码`)
+    let r = e === `bilibili` ? wv(this.deps.accounts.secret(`bilibili`)) : ``,
+      i = ``
+    if (this.deps.resolveRoomId) i = await this.deps.resolveRoomId(e, n.externalId)
+    else if (e === `bilibili`) i = String(await vv(n.externalId).catch(() => 0))
+    else if (((i = Cv(this.deps.pushTargets.get(`xiaohongshu`)?.key ?? ``)), !i)) {
+      let e = this.deps.accounts.secret(`xiaohongshu`)
+      if (e?.cookie && this.deps.xiaohongshu) {
+        let t = await this.deps.xiaohongshu.livingPushUrl(e.cookie).catch(() => null)
+        t?.ok && t.data && (i = Cv(t.data.key))
+      }
+    }
+    if (!i) {
+      this.deps.logs.write(
+        `warn`,
+        t,
+        e === `xiaohongshu` ? `还没拿到直播间号，先兑换开播码` : `取不到 B 站房间号`,
+      )
       return
     }
     let a = e === `xiaohongshu` ? (this.deps.accounts.secret(`xiaohongshu`)?.cookie ?? ``) : r
@@ -47559,7 +47671,7 @@ var xv = class {
   }
   buildClient(e, t) {
     return e === `bilibili`
-      ? new mv({
+      ? new _v({
           roomId: t.roomId,
           cookie: t.cookie,
           onEvent: (e) => this.deps.bus.publish(e),
@@ -47569,7 +47681,7 @@ var xv = class {
               e === `error` && this.deps.logs.write(`error`, `B站`, `弹幕连接出错：${t ?? ``}`))
           },
         })
-      : new _v({
+      : new xv({
           roomId: t.roomId,
           cookie: t.cookie,
           onEvent: (e) => this.deps.bus.publish(e),
@@ -47582,122 +47694,178 @@ var xv = class {
   }
   disconnect(e) {
     let t = this.clients.get(e)
-    t && (t.stop(), this.clients.delete(e), this.deps.logs.write(`info`, vv[e], `已断开弹幕连接`))
+    t && (t.stop(), this.clients.delete(e), this.deps.logs.write(`info`, Sv[e], `已断开弹幕连接`))
   }
 }
-const Sv = L_(),
-  Cv = new y_({ dir: process.env.PS5LB_LOG_DIR ?? `logs` }),
-  wv = new S_({ logger: b_(Cv, `收流`) }),
-  Tv = new Eh(),
-  Ev = new pg(),
-  Dv = new Dh(),
-  Ov = process.env.PS5LB_WEB_DIR ?? new URL(`../../web/dist`, import.meta.url).pathname,
-  kv = C_({
-    orchestrator: wv,
-    logs: Cv,
-    bus: Dv,
-    accounts: Tv,
-    pushTargets: Ev,
-    logger: Sv.logLevel !== `fatal`,
-    webDir: Ov,
-    mihomo: new cg({ baseUrl: Sv.mihomoUrl, group: Sv.mihomoGroup }),
+const Ev = z_(),
+  Dv = new x_({ dir: process.env.PS5LB_LOG_DIR ?? `logs` }),
+  Ov = new w_({ logger: S_(Dv, `收流`) }),
+  kv = new Eh(),
+  Av = new pg(),
+  jv = new hg(),
+  Mv = new Dh(),
+  Nv = process.env.PS5LB_WEB_DIR ?? new URL(`../../web/dist`, import.meta.url).pathname,
+  Pv = T_({
+    orchestrator: Ov,
+    logs: Dv,
+    bus: Mv,
+    accounts: kv,
+    pushTargets: Av,
+    settings: jv,
+    logger: Ev.logLevel !== `fatal`,
+    webDir: Nv,
+    mihomo: new cg({ baseUrl: Ev.mihomoUrl, group: Ev.mihomoGroup }),
     proxyConfig: {
       configPath: `/root/.config/mihomo/config.yaml`,
       writePath: process.env.PS5LB_MIHOMO_CONF ?? `./conf/mihomo.yaml`,
     },
   })
-Dv.subscribe((e) => {
+Mv.subscribe((e) => {
   let t = e.platform === `bilibili` ? `B站` : `小红书`
-  Cv.write(Uh(e), t, Vh(e), { kind: e.kind, user: e.user })
+  Dv.write(Uh(e), t, Vh(e), { kind: e.kind, user: e.user })
 })
-const Av = new xv({ orchestrator: wv, accounts: Tv, pushTargets: Ev, bus: Dv, logs: Cv })
-Av.start()
-const jv = new K_(),
-  Mv = process.env.PS5LB_AUTO_START_BILI === `1`
-function Nv(e) {
+const Fv = new J_(),
+  Iv = new lg()
+for (let e of [`bilibili`, `xiaohongshu`]) {
+  let t = kv.get(e)
+  Ov.setPlatform(e, { enabled: jv.enabled(e), accountName: t?.displayName ?? null })
+}
+Ov.refresh()
+const Lv = new lv({
+  orchestrator: Ov,
+  onChange: (e, t) => {
+    S_(Dv, `收流`).info(t ? `检测到推流（对账）` : `推流已结束（对账）`, { path: e })
+  },
+})
+;(Lv.start(),
+  Ov.onStatus((e) => {
+    ;(e.state === `starting` || (e.state === `live` && e.uptimeSeconds === 0)) && Mv.clear()
+  }))
+const Rv = new Tv({
+  orchestrator: Ov,
+  accounts: kv,
+  pushTargets: Av,
+  bus: Mv,
+  logs: Dv,
+  xiaohongshu: Iv,
+})
+Rv.start()
+const zv = process.env.PS5LB_AUTO_START_BILI !== `0`
+let Bv = null
+function Vv(e) {
   return Object.entries(e)
     .map(([e, t]) => `${e}=${t}`)
     .join(`; `)
 }
-const Pv = new av({
-  orchestrator: wv,
-  accounts: Tv,
-  logs: Cv,
-  inputUrl: (e) => `rtmp://127.0.0.1:${Sv.rtmpPort}/${e}`,
+const Hv = new sv({
+  orchestrator: Ov,
+  accounts: kv,
+  logs: Dv,
+  inputUrl: (e) => `rtmp://127.0.0.1:${Ev.rtmpPort}/${e}`,
   resolveTarget: async (e) => {
-    let t = Ev.get(e)
+    let t = Av.get(e)
     if (t) return t
-    if (e !== `bilibili` || !Mv) return null
-    let n = Tv.get(`bilibili`),
-      r = Tv.secret(`bilibili`)
-    return !n || !r
-      ? null
-      : (await jv.startLive({ uid: n.externalId, cookie: Nv(r), csrf: r.bili_jct ?? `` })).target
+    if (e === `xiaohongshu`) {
+      let e = kv.secret(`xiaohongshu`)
+      if (!e?.cookie) return null
+      let t = await Iv.livingPushUrl(e.cookie)
+      return !t.ok || !t.data
+        ? (S_(Dv, `小红书`).warn(`取不到推流地址：${t.detail ?? `未开播`}`), null)
+        : ((Bv ??= null), { platform: `xiaohongshu`, server: t.data.server, key: t.data.key })
+    }
+    if (e !== `bilibili` || !zv) return null
+    let n = kv.get(`bilibili`),
+      r = kv.secret(`bilibili`)
+    if (!n || !r) return null
+    let i = await Fv.startLive({ uid: n.externalId, cookie: Vv(r), csrf: r.bili_jct ?? `` })
+    return (
+      (Bv = { roomId: n.externalId, channel: i.channel }),
+      S_(Dv, `B站`).info(`已调用开播接口`),
+      i.target
+    )
   },
 })
-Pv.start()
-let Fv = null
-if (Sv.relayEnabled) {
-  Fv = new tv({
-    port: Sv.relayPort,
+Hv.start()
+let Uv = null
+if (Ev.relayEnabled) {
+  Uv = new rv({
+    port: Ev.relayPort,
     proxyDomains: [`twitch.tv`, `live-video.net`, `twitchcdn.net`],
-    proxy: { host: Sv.proxyHost, port: Sv.proxyPort },
+    proxy: { host: Ev.proxyHost, port: Ev.proxyPort },
     onRoute: (e, t) => {
-      b_(Cv, `代理`).debug(`中继 ${e}`, { viaProxy: t })
+      S_(Dv, `代理`).debug(`中继 ${e}`, { viaProxy: t })
     },
   })
   try {
-    ;(await Fv.listen(), b_(Cv, `系统`).info(`TLS 中继已启动`, { port: Sv.relayPort }))
+    ;(await Uv.listen(), S_(Dv, `系统`).info(`TLS 中继已启动`, { port: Ev.relayPort }))
   } catch (e) {
-    ;(b_(Cv, `系统`).error(`TLS 中继启动失败`, {
+    ;(S_(Dv, `系统`).error(`TLS 中继启动失败`, {
       reason: e instanceof Error ? e.message : String(e),
     }),
-      (Fv = null))
+      (Uv = null))
   }
 }
-let Iv = null
-if (Sv.dnsEnabled) {
-  Iv = new Z_({
-    port: Sv.dnsPort,
-    address: Sv.dnsHost,
+let Wv = null
+if (Ev.dnsEnabled) {
+  Wv = new $_({
+    port: Ev.dnsPort,
+    address: Ev.dnsHost,
     hijackDomains: [`twitch.tv`, `live-video.net`],
-    hijackIp: Sv.dnsHijackIp,
+    hijackIp: Ev.dnsHijackIp,
   })
   try {
-    ;(await Iv.listen(),
-      b_(Cv, `系统`).info(`DNS 劫持已启动`, { port: Sv.dnsPort, ip: Sv.dnsHijackIp }))
+    ;(await Wv.listen(),
+      S_(Dv, `系统`).info(`DNS 劫持已启动`, { port: Ev.dnsPort, ip: Ev.dnsHijackIp }))
   } catch (e) {
-    ;(b_(Cv, `系统`).error(`DNS 启动失败`, { reason: e instanceof Error ? e.message : String(e) }),
-      (Iv = null))
+    ;(S_(Dv, `系统`).error(`DNS 启动失败`, { reason: e instanceof Error ? e.message : String(e) }),
+      (Wv = null))
   }
 }
-const Lv = new z_({ port: Sv.ircPort })
+const Gv = new V_({ port: Ev.ircPort })
 try {
-  ;(await Lv.listen(), b_(Cv, `系统`).info(`聊天通道已监听`, { port: Sv.ircPort }))
+  ;(await Gv.listen(), S_(Dv, `系统`).info(`聊天通道已监听`, { port: Ev.ircPort }))
 } catch (e) {
-  b_(Cv, `系统`).error(`聊天通道启动失败`, {
-    port: Sv.ircPort,
+  S_(Dv, `系统`).error(`聊天通道启动失败`, {
+    port: Ev.ircPort,
     reason: e instanceof Error ? e.message : String(e),
   })
 }
-;(Dv.subscribe((e) => Lv.broadcast(e)),
-  await F_({
+Mv.subscribe((e) => Gv.broadcast(e))
+let Kv = !1
+;(Ov.onStatus((e) => {
+  let t = e.state === `live`
+  if (Kv && !t && Bv) {
+    let e = kv.get(`bilibili`),
+      t = kv.secret(`bilibili`)
+    ;(e &&
+      t &&
+      Fv.stopLive({ roomId: Bv.roomId, cookie: Vv(t), csrf: t.bili_jct ?? ``, channel: Bv.channel })
+        .then(() => S_(Dv, `B站`).info(`已调用关播接口`))
+        .catch((e) =>
+          S_(Dv, `B站`).error(`关播失败`, { reason: e instanceof Error ? e.message : String(e) }),
+        ),
+      (Bv = null))
+  }
+  Kv = t
+}),
+  await L_({
     version: process.env.PS5LB_VERSION ?? `0.0.1`,
-    host: Sv.host,
-    port: Sv.port,
+    host: Ev.host,
+    port: Ev.port,
     mode: process.env.NODE_ENV ?? `development`,
   }),
-  await kv.listen({ host: Sv.host, port: Sv.port }),
-  b_(Cv, `系统`).info(`服务已启动`, { host: Sv.host, port: Sv.port }))
-const Rv = async (e) => {
-  ;(kv.log.info({ signal: e }, `准备退出`),
-    Av.stop(),
-    Pv.stop(),
-    await Lv.close(),
-    Iv?.close(),
-    await Fv?.close(),
-    await kv.close(),
+  await Pv.listen({ host: Ev.host, port: Ev.port }),
+  S_(Dv, `系统`).info(`服务已启动`, { host: Ev.host, port: Ev.port }))
+const qv = async (e) => {
+  ;(Pv.log.info({ signal: e }, `准备退出`),
+    Lv.stop(),
+    Rv.stop(),
+    Hv.stop(),
+    await Gv.close(),
+    Wv?.close(),
+    await Uv?.close(),
+    await Pv.close(),
     process.exit(0))
 }
-;(process.on(`SIGINT`, () => void Rv(`SIGINT`)), process.on(`SIGTERM`, () => void Rv(`SIGTERM`)))
+;(process.on(`SIGINT`, () => void qv(`SIGINT`)), process.on(`SIGTERM`, () => void qv(`SIGTERM`)))
 export {}

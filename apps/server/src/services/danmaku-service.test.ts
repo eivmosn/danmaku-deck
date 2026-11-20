@@ -46,6 +46,7 @@ function setup(withAccount = true) {
     bus,
     logs,
     createClient,
+    resolveRoomId: async () => '31455973',
   })
   return { service, orchestrator, accounts, logs, bus, createClient, connect, stop }
 }

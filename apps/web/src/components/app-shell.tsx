@@ -11,10 +11,15 @@ import {
   Sun,
   type LucideIcon,
 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { motion } from 'motion/react'
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { PlayStationLogo } from '@/components/brand-logos'
-import { cn } from '@/lib/cn'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import { useThemeStore } from '@/stores/theme'
 
 const NAV: Array<{ to: string; label: string; icon: LucideIcon }> = [
@@ -26,91 +31,53 @@ const NAV: Array<{ to: string; label: string; icon: LucideIcon }> = [
 ]
 
 const storage = useStorage({ prefix: 'ps5lb.', type: 'localStorage' })
+const WIDTH = { expanded: 224, collapsed: 64 }
 
-interface AppShellProps {
-  children?: ReactNode
-}
-
-/**
- * 收起：图标区 40×40 居中（轨道 64，内容区 48，居中后左边 12，中轴 32）
- * 展开：整行铺满，左侧内边距让图标与顶部徽章左边缘对齐
- */
-const ITEM_SHAPE = {
-  expanded: 'w-full gap-3 pl-2 pr-3 self-stretch',
-  collapsed: 'size-10 self-center justify-center px-0 gap-0',
-} as const
-const LABEL_WIDTH = {
-  expanded: 'max-w-[132px] opacity-100',
-  collapsed: 'max-w-0 opacity-0',
-} as const
-
-interface RailItemProps {
+interface NavButtonProps {
   to?: string
   label: string
+  icon: LucideIcon
   collapsed: boolean
-  icon: ReactNode
   onClick?: () => void
 }
 
-function RailItem({ to, label, collapsed, icon, onClick }: RailItemProps) {
+/** 导航项：coss Button + Tooltip，收起时只显示图标 */
+function NavButton({ to, label, icon: Icon, collapsed, onClick }: NavButtonProps) {
   const content = (
-    <>
-      <span className="shrink-0">{icon}</span>
-      <span
-        className={cn(
-          'overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300 ease-out',
-          collapsed ? LABEL_WIDTH.collapsed : LABEL_WIDTH.expanded,
-        )}
+    <Button
+      variant="ghost"
+      size={collapsed ? 'icon' : 'sm'}
+      className={cn(
+        'justify-start overflow-hidden',
+        collapsed ? 'mx-auto size-10 justify-center' : 'w-full gap-2.5 px-2',
+      )}
+      render={to ? <NavLink to={to} end={to === '/'} /> : undefined}
+      onClick={onClick}
+      aria-label={label}
+    >
+      <Icon size={18} strokeWidth={1.9} />
+      <motion.span
+        className="whitespace-nowrap"
+        animate={{ width: collapsed ? 0 : 'auto', opacity: collapsed ? 0 : 1 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
       >
         {label}
-      </span>
-    </>
+      </motion.span>
+    </Button>
   )
 
-  const base = cn(
-    'flex h-10 items-center rounded-[10px] transition-all duration-300 ease-out',
-    collapsed ? ITEM_SHAPE.collapsed : ITEM_SHAPE.expanded,
-  )
-
-  if (to) {
-    return (
-      <NavLink
-        to={to}
-        end={to === '/'}
-        title={label}
-        className={({ isActive }) =>
-          cn(
-            base,
-            isActive
-              ? 'bg-[var(--muted)] text-[var(--foreground)]'
-              : 'text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]',
-          )
-        }
-      >
-        {content}
-      </NavLink>
-    )
-  }
-
+  if (!collapsed) return content
   return (
-    <button
-      type="button"
-      title={label}
-      onClick={onClick}
-      className={cn(
-        base,
-        'w-full text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]',
-      )}
-    >
-      {content}
-    </button>
+    <Tooltip>
+      <TooltipTrigger render={content} />
+      <TooltipPopup side="right">{label}</TooltipPopup>
+    </Tooltip>
   )
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children }: { children?: React.ReactNode }) {
   const { mode, toggle: toggleTheme } = useThemeStore()
   const [collapsed, setCollapsedState] = useState<boolean>(() => {
-    // 支持 ?sidebar=collapsed 深链，方便截图与分享
     const forced = new URLSearchParams(window.location.search).get('sidebar')
     if (forced === 'collapsed') return true
     if (forced === 'expanded') return false
@@ -123,104 +90,94 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--color-bg)]">
-      <aside
-        className={cn(
-          'sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-[var(--border)]',
-          'bg-[var(--card)] transition-[width] duration-300 ease-out md:flex',
-          collapsed ? 'w-16' : 'w-56',
-        )}
-      >
-        <div
-          className={cn(
-            'flex h-16 shrink-0 items-center gap-2.5 transition-[padding] duration-300 ease-out',
-            collapsed ? 'pl-3' : 'pl-4',
-          )}
+    <TooltipProvider>
+      <div className="flex h-screen overflow-hidden bg-background">
+        <motion.aside
+          animate={{ width: collapsed ? WIDTH.collapsed : WIDTH.expanded }}
+          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+          className="hidden h-screen shrink-0 flex-col overflow-hidden border-r bg-card md:flex"
         >
-          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#003791] text-white">
-            <PlayStationLogo size={22} />
-          </span>
           <div
-            className={cn(
-              'overflow-hidden whitespace-nowrap transition-all duration-300 ease-out',
-              collapsed ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100',
-            )}
+            className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'gap-2.5 px-3')}
           >
-            <div className="text-sm font-semibold text-[var(--foreground)]">直播桥</div>
-            <div className="text-[11px] text-[var(--muted-foreground)]">Live Bridge</div>
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-playstation text-white">
+              <PlayStationLogo size={22} />
+            </span>
+            <motion.div
+              className="overflow-hidden whitespace-nowrap"
+              animate={{ width: collapsed ? 0 : 'auto', opacity: collapsed ? 0 : 1 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+            >
+              <div className="text-sm font-semibold">直播桥</div>
+              <div className="text-[11px] text-muted-foreground">Live Bridge</div>
+            </motion.div>
           </div>
-        </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-hidden px-2">
-          {NAV.map((item) => {
-            const Icon = item.icon
-            return (
-              <RailItem
-                key={item.to}
-                to={item.to}
-                collapsed={collapsed}
-                label={item.label}
-                icon={<Icon size={18} strokeWidth={1.9} />}
-              />
-            )
-          })}
-        </nav>
+          <ScrollArea className="flex-1">
+            <nav className={cn('flex flex-col gap-1 py-2', collapsed ? 'px-2' : 'px-2')}>
+              {NAV.map((item) => (
+                <NavButton
+                  key={item.to}
+                  to={item.to}
+                  label={item.label}
+                  icon={item.icon}
+                  collapsed={collapsed}
+                />
+              ))}
+            </nav>
+          </ScrollArea>
 
-        <div className="flex flex-col gap-1 border-t border-[var(--border)] p-2">
-          <RailItem
-            collapsed={collapsed}
-            label={collapsed ? '展开' : '收起侧边栏'}
-            icon={collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-            onClick={() => setCollapsed(!collapsed)}
-          />
-          <RailItem
-            collapsed={collapsed}
-            label={mode === 'dark' ? '浅色模式' : '深色模式'}
-            icon={mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            onClick={toggleTheme}
-          />
-        </div>
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <nav className="flex items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--card)] p-2 md:hidden">
-          {NAV.map((item) => {
-            const Icon = item.icon
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm',
-                    isActive
-                      ? 'bg-[var(--muted)] text-[var(--foreground)]'
-                      : 'text-[var(--muted-foreground)]',
-                  )
-                }
-              >
-                <Icon size={16} />
-                {item.label}
-              </NavLink>
-            )
-          })}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label="切换主题"
-            className="ml-auto rounded-lg p-2 text-[var(--muted-foreground)]"
-          >
-            {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-        </nav>
-
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col p-5 md:p-7">
-            {children ?? <Outlet />}
+          <Separator />
+          <div className="flex flex-col gap-1 p-2">
+            <NavButton
+              collapsed={collapsed}
+              label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+              icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+              onClick={() => setCollapsed(!collapsed)}
+            />
+            <NavButton
+              collapsed={collapsed}
+              label={mode === 'dark' ? '浅色模式' : '深色模式'}
+              icon={mode === 'dark' ? Sun : Moon}
+              onClick={toggleTheme}
+            />
           </div>
-        </main>
+        </motion.aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <nav className="flex items-center gap-1 overflow-x-auto border-b bg-card p-2 md:hidden">
+            {NAV.map((item) => {
+              const Icon = item.icon
+              return (
+                <Button
+                  key={item.to}
+                  variant="ghost"
+                  size="sm"
+                  render={<NavLink to={item.to} end={item.to === '/'} />}
+                >
+                  <Icon size={16} />
+                  {item.label}
+                </Button>
+              )
+            })}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="ml-auto"
+              onClick={toggleTheme}
+              aria-label="切换主题"
+            >
+              {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </Button>
+          </nav>
+
+          <main className="min-w-0 flex-1 overflow-y-auto">
+            <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col p-5 md:p-7">
+              {children ?? <Outlet />}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }

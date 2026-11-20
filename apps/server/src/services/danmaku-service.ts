@@ -4,6 +4,8 @@ import type { DanmakuBus } from '@/danmaku-bus'
 import type { LogService } from '@/logger'
 import type { Orchestrator } from '@/orchestrator'
 import { BilibiliDanmakuClient } from '@/platforms/bilibili/client'
+import { roomIdByUid } from '@/platforms/bilibili/room'
+import type { XiaohongshuApi } from '@/platforms/xiaohongshu/api'
 import { XiaohongshuDanmakuClient } from '@/platforms/xiaohongshu/danmaku'
 import type { PushTargetsStore } from '@/push/targets-store'
 
@@ -18,6 +20,10 @@ export interface DanmakuServiceDeps {
   pushTargets: PushTargetsStore
   bus: DanmakuBus
   logs: LogService
+  /** 小红书弹幕房间号发现用 */
+  xiaohongshu?: XiaohongshuApi
+  /** 解析弹幕房间号；测试里替换成固定值，避免走网络 */
+  resolveRoomId?: (platform: Platform, accountUserId: string) => Promise<string>
   /** 便于测试替换，按平台创建客户端 */
   createClient?: (
     platform: Platform,
@@ -91,16 +97,32 @@ export class DanmakuService {
     if (!account) return
 
     const cookie = platform === 'bilibili' ? cookieOf(this.deps.accounts.secret('bilibili')) : ''
-    const roomId =
-      platform === 'bilibili'
-        ? account.externalId
-        : roomIdFromKey(this.deps.pushTargets.get('xiaohongshu')?.key ?? '')
 
-    if (platform === 'xiaohongshu') {
+    let roomId = ''
+    if (this.deps.resolveRoomId) {
+      roomId = await this.deps.resolveRoomId(platform, account.externalId)
+    } else if (platform === 'bilibili') {
+      // 账号里存的是 uid，弹幕要的是 room_id
+      roomId = String(await roomIdByUid(account.externalId).catch(() => 0))
+    } else {
+      roomId = roomIdFromKey(this.deps.pushTargets.get('xiaohongshu')?.key ?? '')
       if (!roomId) {
-        this.deps.logs.write('warn', label, '还没有本场推流地址，先兑换开播码')
-        return
+        // 没填开播码时，用「当前场次」接口反查直播间号
+        const secret = this.deps.accounts.secret('xiaohongshu')
+        if (secret?.cookie && this.deps.xiaohongshu) {
+          const living = await this.deps.xiaohongshu.livingPushUrl(secret.cookie).catch(() => null)
+          if (living?.ok && living.data) roomId = roomIdFromKey(living.data.key)
+        }
       }
+    }
+
+    if (!roomId) {
+      this.deps.logs.write(
+        'warn',
+        label,
+        platform === 'xiaohongshu' ? '还没拿到直播间号，先兑换开播码' : '取不到 B 站房间号',
+      )
+      return
     }
 
     const xhsCookie =
