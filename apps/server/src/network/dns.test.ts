@@ -1,6 +1,13 @@
 import { createSocket } from 'node:dgram'
 import { describe, expect, it } from 'vitest'
-import { buildAResponse, buildQuestion, DnsServer, parseQuery, shouldHijack } from './dns'
+import {
+  buildAResponse,
+  buildEmptyResponse,
+  buildQuestion,
+  DnsServer,
+  parseQuery,
+  shouldHijack,
+} from './dns'
 
 /** 手工构一条 A 查询，模拟 PS5 发出的包 */
 function makeQuery(name: string, type = 1, id = 0x1234): Buffer {
@@ -59,6 +66,19 @@ describe('buildAResponse', () => {
   })
 })
 
+describe('buildEmptyResponse', () => {
+  it('返回 NOERROR 且 0 条答案，问题段原样带回', () => {
+    const query = parseQuery(makeQuery('ingest.twitch.tv', 28))!
+    const response = buildEmptyResponse(query)
+
+    expect(response.readUInt16BE(0)).toBe(0x1234)
+    expect(response.readUInt16BE(2) & 0x000f).toBe(0) // rcode = NOERROR
+    expect(response.readUInt16BE(6)).toBe(0) // ancount
+    // 只有头部 + 问题段，没有任何答案数据
+    expect(response.length).toBe(12 + buildQuestion(query).length)
+  })
+})
+
 describe('DnsServer', () => {
   it('劫持域名返回指定 IP，其他域名转发上游', async () => {
     const port = 15353
@@ -70,18 +90,23 @@ describe('DnsServer', () => {
     await server.listen()
 
     const client = createSocket('udp4')
-    const ask = (name: string): Promise<Buffer> =>
+    const ask = (name: string, type = 1): Promise<Buffer> =>
       new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('超时')), 1000)
         client.once('message', (response) => {
           clearTimeout(timer)
           resolve(response)
         })
-        client.send(makeQuery(name), port, '127.0.0.1')
+        client.send(makeQuery(name, type), port, '127.0.0.1')
       })
 
     const hijacked = await ask('irc.twitch.tv')
     expect([...hijacked.subarray(-4)]).toEqual([192, 168, 1, 100])
+
+    // AAAA 不能转给上游（国内会返回被污染的地址），必须回 NODATA
+    const v6 = await ask('ingest.twitch.tv', 28)
+    expect(v6.readUInt16BE(2) & 0x000f).toBe(0)
+    expect(v6.readUInt16BE(6)).toBe(0)
 
     // 未命中劫持的查询会走上游；测试里上游不可达，因此这里只验证不崩溃
     const other = await ask('example.com').catch(() => null)

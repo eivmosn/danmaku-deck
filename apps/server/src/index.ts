@@ -193,6 +193,11 @@ if (config.dnsEnabled) {
     address: config.dnsHost,
     hijackDomains: ['twitch.tv', 'live-video.net'],
     hijackIp: config.dnsHijackIp,
+    onResolve: (name, hijacked) => {
+      // 只记 Twitch 相关解析，别的域名太多会刷屏
+      if (!name.endsWith('twitch.tv') && !name.endsWith('live-video.net')) return
+      createLogger(logs, '系统').debug(`解析 ${name}${hijacked ? ' → 劫持' : ''}`)
+    },
   })
   try {
     await dns.listen()
@@ -208,7 +213,10 @@ if (config.dnsEnabled) {
   }
 }
 
-const irc = new IrcServer({ port: config.ircPort })
+const irc = new IrcServer({
+  port: config.ircPort,
+  onLog: (message) => createLogger(logs, '聊天').info(message),
+})
 try {
   await irc.listen()
   createLogger(logs, '系统').info('聊天通道已监听', { port: config.ircPort })

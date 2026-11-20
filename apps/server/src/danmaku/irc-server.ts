@@ -25,6 +25,8 @@ interface Session {
 export interface IrcServerOptions {
   port: number
   host?: string
+  /** 聊天连接日志：PS5 连上/加入频道时能看到 */
+  onLog?: (message: string) => void
   /** 一次性把多个进场合并成一条的窗口 */
   enterWindowMs?: number
   now?: () => number
@@ -35,7 +37,10 @@ export class IrcServer {
   private readonly sessions = new Set<Session>()
   private pendingEnters: DanmakuEvent[] = []
   private enterTimer: ReturnType<typeof setTimeout> | null = null
-  private readonly options: Required<Omit<IrcServerOptions, 'host'>> & { host: string }
+  private readonly options: Required<Omit<IrcServerOptions, 'host' | 'onLog'>> & {
+    host: string
+    onLog?: (message: string) => void
+  }
 
   constructor(options: IrcServerOptions) {
     this.options = {
@@ -111,6 +116,7 @@ export class IrcServer {
   }
 
   private handleClient(socket: Socket): void {
+    this.options.onLog?.(`客户端连上聊天端口（${socket.remoteAddress ?? '未知'}）`)
     const session: Session = { socket, nick: 'justinfan', channel: null, buffer: '' }
     this.sessions.add(session)
 

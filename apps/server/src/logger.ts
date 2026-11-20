@@ -5,7 +5,7 @@ import ansis from 'ansis'
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 /** 日志作用域，中文便于按平台过滤 */
-export type LogScope = '系统' | '收流' | 'B站' | '小红书' | '代理' | '推送'
+export type LogScope = '系统' | '收流' | '聊天' | 'B站' | '小红书' | '代理' | '推送'
 
 export interface LogEntry {
   id: number
@@ -63,6 +63,7 @@ function toLocalDay(date: Date): string {
 const SCOPE_COLOR: Record<LogScope, (text: string) => string> = {
   系统: (text) => ansis.bold(text),
   收流: (text) => ansis.magenta(text),
+  聊天: (text) => ansis.cyan(text),
   B站: (text) => ansis.hex('#fb7299')(text),
   小红书: (text) => ansis.hex('#ff2442')(text),
   代理: (text) => ansis.blue(text),

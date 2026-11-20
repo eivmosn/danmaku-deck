@@ -79,6 +79,19 @@ export function buildAResponse(query: DnsQuery, ip: string, ttl = 60): Buffer {
   return Buffer.concat([header, buildQuestion(query), answer])
 }
 
+/** 构造「没有这条记录」的应答（NOERROR + 0 条答案），让客户端立刻回落到 A 记录 */
+export function buildEmptyResponse(query: DnsQuery): Buffer {
+  const header = Buffer.alloc(12)
+  header.writeUInt16BE(query.id, 0)
+  // 标准响应 + 递归可用；rcode 0 表示查询成功，只是没有该类型的记录
+  header.writeUInt16BE(0x8180, 2)
+  header.writeUInt16BE(1, 4) // qdcount
+  header.writeUInt16BE(0, 6) // ancount
+  header.writeUInt16BE(0, 8) // nscount
+  header.writeUInt16BE(0, 10) // arcount
+  return Buffer.concat([header, buildQuestion(query)])
+}
+
 /** 原样重建问题段（不依赖压缩指针，简单可靠） */
 export function buildQuestion(query: DnsQuery): Buffer {
   const parts = query.name.split('.').filter(Boolean)
@@ -150,7 +163,8 @@ export class DnsServer {
     const query = parseQuery(packet)
     if (!query) return
 
-    const hijacked = query.type === TYPE_A && shouldHijack(query.name, this.options.hijackDomains)
+    const hijackedDomain = shouldHijack(query.name, this.options.hijackDomains)
+    const hijacked = hijackedDomain && query.type === TYPE_A
     this.options.onResolve?.(query.name, hijacked)
 
     if (hijacked) {
@@ -158,6 +172,14 @@ export class DnsServer {
       return
     }
     if (query.type === TYPE_OPT) return
+
+    // 被劫持的域名只认我们的 A 记录：AAAA 绝不能再转给上游，
+    // 否则国内 DNS 会返回被污染的地址（实测 ingest.twitch.tv 的 AAAA
+    // 是 2a03:2880:...:face:b00c:...，Facebook 的段），PS5 会优先走 IPv6 连到不存在的机器。
+    if (hijackedDomain) {
+      this.socket?.send(buildEmptyResponse(query), port, host)
+      return
+    }
 
     const forwarded = await this.forward(packet)
     if (forwarded) this.socket?.send(forwarded, port, host)
