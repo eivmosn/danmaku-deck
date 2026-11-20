@@ -1,6 +1,7 @@
+import { useElapsedSeconds } from '@/lib/use-elapsed'
 import type { Status } from '@danmaku-deck/shared'
 import { AlertTriangle, ArrowUpRight } from 'lucide-react'
-import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
+import { motion } from 'motion/react'
 import { GlowOrb } from '@/components/glow-orb'
 import { Link } from 'react-router'
 
@@ -36,14 +37,12 @@ function Waveform({ color }: { color: string }) {
 }
 
 function Uptime({ seconds }: { seconds: number }) {
-  const raw = useMotionValue(0)
-  const spring = useSpring(raw, { stiffness: 90, damping: 18 })
-  const text = useTransform(spring, (value) => {
-    const total = Math.max(0, Math.floor(value))
-    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
-  })
-  raw.set(seconds)
-  return <motion.span className="tabular-nums">{text}</motion.span>
+  const total = useElapsedSeconds(seconds)
+  return (
+    <span className="tabular-nums">
+      {Math.floor(total / 60)}:{String(total % 60).padStart(2, '0')}
+    </span>
+  )
 }
 
 /** 暗色下的弥散光晕：两团模糊光斑缓慢游走 */

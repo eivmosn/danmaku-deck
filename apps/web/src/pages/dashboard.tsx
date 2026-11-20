@@ -8,9 +8,11 @@ import { DanmakuList } from '@/components/danmaku-list'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLiveStore } from '@/stores/live'
 import { formatUptime, STATE_TEXT } from '@/lib/format'
+import { useElapsedSeconds } from '@/lib/use-elapsed'
 
 export function DashboardPage() {
   const { status, danmaku, toggle, requestEnable } = useLiveStore()
+  const elapsed = useElapsedSeconds(status?.uptimeSeconds ?? 0)
   const live = status?.state === 'live'
   const [needLogin, setNeedLogin] = useState<Platform | null>(null)
 
@@ -31,9 +33,7 @@ export function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">概览</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            {live
-              ? `本场已播 ${formatUptime(status?.uptimeSeconds ?? 0)}`
-              : 'PS5 一旦开始直播，这里会实时显示状态'}
+            {live ? `本场已播 ${formatUptime(elapsed)}` : 'PS5 一旦开始直播，这里会实时显示状态'}
           </p>
         </div>
         <span
