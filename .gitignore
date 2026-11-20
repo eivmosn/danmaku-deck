@@ -9,3 +9,4 @@ coverage/
 apps/server/logs/
 logs/
 .ps5lb/
+dist-bundle/
