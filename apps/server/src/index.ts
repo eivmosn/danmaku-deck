@@ -1,8 +1,9 @@
+import { join } from 'node:path'
 import { buildApp } from '@/app'
 import { printBanner } from '@/banner'
 import { loadConfig } from '@/config'
 import { AccountsStore } from '@/accounts/store'
-import { DanmakuBus } from '@/danmaku-bus'
+import { DanmakuBus, FileDanmakuStore } from '@/danmaku-bus'
 import { describe, levelFor } from '@/danmaku-format'
 import { createLogger, LogService } from '@/logger'
 import { Orchestrator } from '@/orchestrator'
@@ -25,7 +26,11 @@ const orchestrator = new Orchestrator({ logger: createLogger(logs, '收流') })
 const accounts = new AccountsStore()
 const pushTargets = new PushTargetsStore()
 const settings = new SettingsStore()
-const bus = new DanmakuBus()
+// 弹幕历史落盘：部署重启后 recent 接口还能给出上一场的记录
+const bus = new DanmakuBus(
+  200,
+  new FileDanmakuStore(join(process.cwd(), '.ps5lb', 'danmaku.jsonl')),
+)
 // 前端产物目录：容器/单文件部署时用环境变量指定
 const webDir = process.env.PS5LB_WEB_DIR ?? new URL('../../web/dist', import.meta.url).pathname
 const app = buildApp({
