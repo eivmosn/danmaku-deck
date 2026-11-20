@@ -1,16 +1,11 @@
 /**
  * DeepSeek 仓库助手：在 issue / PR 评论里 @deepseek 就干活。
  *
- * 身份解析顺序（决定评论显示成谁）：
- *   1. GitHub App（DEEPSEEK_APP_ID + DEEPSEEK_APP_PRIVATE_KEY）→ <应用名>[bot] + 你上传的头像
- *   2. AGENT_TOKEN（某个账号的 PAT）→ 显示成那个账号
- *   3. GITHUB_TOKEN（兜底）→ github-actions[bot]
+ * 用 Actions 自带的 GITHUB_TOKEN 发评论，所以显示成 github-actions[bot]。
  *
  * 能做的：回复分析、开 issue、开 PR（模型给出完整文件内容，走 git tree API 一次提交）。
  * 不做的：合并、关闭、改 .github/workflows（防止它自己改自己的 CI）。
  */
-
-import { createSign } from 'node:crypto'
 
 const API = process.env.GITHUB_API_URL ?? 'https://api.github.com'
 const REPO = process.env.GITHUB_REPOSITORY ?? ''
@@ -20,8 +15,6 @@ const MENTION = process.env.AGENT_MENTION ?? '@deepseek'
 const DEEPSEEK_KEY = process.env.DEEPSEEK_API_KEY
 const MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat'
 const BASE = process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com'
-const APP_ID = process.env.DEEPSEEK_APP_ID
-const APP_KEY = process.env.DEEPSEEK_APP_PRIVATE_KEY
 
 const BLOCKED_PREFIX = '.github/workflows'
 const MAX_FILES = 8
@@ -38,14 +31,15 @@ if (!TRIGGER_TEXT.toLowerCase().includes(MENTION.toLowerCase())) {
   process.exit(0)
 }
 
-let token = process.env.GITHUB_TOKEN
-let identity = 'github-actions[bot]'
+const token = process.env.GITHUB_TOKEN
+const identity = 'github-actions[bot]'
+console.log(`使用身份：${identity}`)
 
-async function ghApi(path, init = {}, useToken = token) {
+async function ghApi(path, init = {}) {
   const response = await fetch(`${API}${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${useToken}`,
+      Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       ...init.headers,
@@ -56,35 +50,6 @@ async function ghApi(path, init = {}, useToken = token) {
   }
   return response.status === 204 ? null : response.json()
 }
-
-/** 用 App 私钥签 JWT（RS256），再换 installation token —— 这一步决定评论头上的头像 */
-async function appToken() {
-  const now = Math.floor(Date.now() / 1000)
-  const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url')
-  const payload = Buffer.from(
-    JSON.stringify({ iat: now - 60, exp: now + 540, iss: APP_ID }),
-  ).toString('base64url')
-  const signer = createSign('RSA-SHA256')
-  signer.update(`${header}.${payload}`)
-  const jwt = `${header}.${payload}.${signer.sign(APP_KEY, 'base64url')}`
-
-  const installation = await ghApi(`/repos/${REPO}/installation`, {}, jwt)
-  const created = await ghApi(
-    `/app/installations/${installation.id}/access_tokens`,
-    { method: 'POST' },
-    jwt,
-  )
-  return created.token
-}
-
-if (APP_ID && APP_KEY) {
-  token = await appToken()
-  identity = 'GitHub App'
-} else if (process.env.AGENT_TOKEN) {
-  token = process.env.AGENT_TOKEN
-  identity = 'bot 账号'
-}
-console.log(`使用身份：${identity}`)
 
 const [issue, comments, repo] = await Promise.all([
   ghApi(`/repos/${REPO}/issues/${ISSUE_NUMBER}`),
