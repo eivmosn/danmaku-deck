@@ -1,0 +1,48 @@
+name: DeepSeek Agent
+
+# 在 issue / PR 评论里 @deepseek 触发；也可以在 Actions 页面手动跑
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: issue 或 PR 编号
+        required: true
+      instruction:
+        description: 要它做什么
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: deepseek-agent-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    # 别的 bot 发的评论不触发，避免自问自答
+    if: github.event_name == 'workflow_dispatch' || github.event.comment.user.type != 'Bot'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 让 DeepSeek 干活
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 想让它顶着鲸鱼头像说话：配下面这一组（GitHub App）
+          DEEPSEEK_APP_ID: ${{ secrets.DEEPSEEK_APP_ID }}
+          DEEPSEEK_APP_PRIVATE_KEY: ${{ secrets.DEEPSEEK_APP_PRIVATE_KEY }}
+          # 退而求其次：某个账号的 PAT
+          AGENT_TOKEN: ${{ secrets.DEEPSEEK_AGENT_TOKEN }}
+          # 模型调用（必填）
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          TRIGGER_TEXT: ${{ github.event.comment.body || inputs.instruction }}
+          AGENT_MENTION: '@deepseek'
+        run: node .github/scripts/deepseek-agent.mjs
