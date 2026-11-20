@@ -1,4 +1,4 @@
-import type { DanmakuEvent, Platform, Status } from '@ps5lb/shared'
+import type { DanmakuEvent, Platform, Status } from '@danmaku-deck/shared'
 import { useStorage } from '@eivmosn/utils'
 import { create } from 'zustand'
 import { fetchStatus } from '@/lib/api'

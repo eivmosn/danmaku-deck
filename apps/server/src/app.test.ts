@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { statusSchema } from '@ps5lb/shared'
+import { statusSchema } from '@danmaku-deck/shared'
 import { buildApp } from '@/app'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'

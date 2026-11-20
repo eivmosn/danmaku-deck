@@ -29,12 +29,12 @@ importers:
 
   apps/server:
     dependencies:
+      '@danmaku-deck/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@fastify/static':
         specifier: ^10.1.12
         version: 10.1.12
-      '@ps5lb/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       ansis:
         specifier: ^4.5.0
         version: 4.5.0
@@ -66,12 +66,12 @@ importers:
       '@base-ui/react':
         specifier: ^1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@danmaku-deck/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@eivmosn/utils':
         specifier: ^1.0.0
         version: 1.0.0
-      '@ps5lb/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

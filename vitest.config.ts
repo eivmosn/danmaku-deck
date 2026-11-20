@@ -12,7 +12,7 @@ export default defineConfig({
         resolve: {
           alias: {
             '@/': serverSrc,
-            '@ps5lb/shared': sharedSrc,
+            '@danmaku-deck/shared': sharedSrc,
           },
         },
         test: {

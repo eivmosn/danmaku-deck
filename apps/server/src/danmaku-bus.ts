@@ -1,4 +1,4 @@
-import type { DanmakuEvent } from '@ps5lb/shared'
+import type { DanmakuEvent } from '@danmaku-deck/shared'
 
 /** 弹幕广播 + 最近历史：SSE 只推新事件，刷新页面时用 recent 补历史 */
 export class DanmakuBus {

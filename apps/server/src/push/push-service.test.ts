@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Platform } from '@ps5lb/shared'
+import type { Platform } from '@danmaku-deck/shared'
 import { describe, expect, it, vi } from 'vitest'
 import { AccountsStore } from '@/accounts/store'
 import { LogService } from '@/logger'

@@ -33,4 +33,4 @@ jobs:
           context: .
           file: docker/Dockerfile.server
           push: false
-          tags: ps5-live-bridge/server:ci
+          tags: danmaku-deck/server:ci

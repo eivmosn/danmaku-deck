@@ -1,4 +1,4 @@
-import type { Status } from '@ps5lb/shared'
+import type { Status } from '@danmaku-deck/shared'
 import { AlertTriangle, ArrowUpRight } from 'lucide-react'
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
 import { GlowOrb } from '@/components/glow-orb'

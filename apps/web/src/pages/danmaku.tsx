@@ -1,4 +1,4 @@
-import type { Platform } from '@ps5lb/shared'
+import type { Platform } from '@danmaku-deck/shared'
 import { useState } from 'react'
 import { DanmakuList } from '@/components/danmaku-list'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

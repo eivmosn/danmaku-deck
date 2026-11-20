@@ -1,4 +1,4 @@
-import type { DanmakuEvent, Platform, Status } from '@ps5lb/shared'
+import type { DanmakuEvent, Platform, Status } from '@danmaku-deck/shared'
 import type { AccountsStore } from '@/accounts/store'
 import type { DanmakuBus } from '@/danmaku-bus'
 import type { LogService } from '@/logger'

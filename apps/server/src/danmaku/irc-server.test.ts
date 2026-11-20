@@ -1,6 +1,6 @@
 import { connect } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { DanmakuEvent } from '@ps5lb/shared'
+import type { DanmakuEvent } from '@danmaku-deck/shared'
 import { IrcServer } from './irc-server'
 
 let server: IrcServer | null = null

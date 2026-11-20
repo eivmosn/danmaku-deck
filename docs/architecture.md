@@ -1,4 +1,4 @@
-# PS5 Live Bridge · 架构设计（v0.1 草案）
+# Danmaku Deck · 架构设计（v0.1 草案）
 
 > 目标：把现在散落在 NAS 上的 5 个容器、1 个 iOS App、若干脚本，收敛成一套**可开源、可维护、支持多账号**的产品。
 
@@ -121,7 +121,7 @@ idle ──检测到 PS5 推流──> starting ──推流就绪──> live �
 ## 5. 仓库结构
 
 ```
-ps5-live-bridge/
+danmaku-deck/
 ├── apps/
 │   ├── server/          # Fastify + TS
 │   └── web/             # Vite + React + TS
@@ -156,7 +156,7 @@ ps5-live-bridge/
 | 代码质量 | oxlint（correctness/suspicious/perf）+ vitest + tsc                 |
 | 版本     | Changesets                                                          |
 | CI       | oxlint + vitest + tsc + docker build                                |
-| 发布     | GHCR 镜像（`ghcr.io/<org>/ps5-live-bridge`）                        |
+| 发布     | GHCR 镜像（`ghcr.io/<org>/danmaku-deck`）                           |
 | 文档     | 架构 / NAS 部署 / 平台配置 / 常见问题                               |
 | 合规     | README 明确「仅限自己账号、遵守平台条款」，不提供任何绕过风控的能力 |
 

@@ -1,6 +1,10 @@
 {
-  "name": "ps5-live-bridge",
+  "name": "danmaku-deck",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eivmosn/danmaku-deck.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
@@ -12,7 +16,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm format:check && pnpm build",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "start": "pnpm --filter @ps5lb/server start"
+    "start": "pnpm --filter @danmaku-deck/server start"
   },
   "devDependencies": {
     "nano-staged": "^1.0.2",

@@ -1,5 +1,5 @@
 {
-  "name": "@ps5lb/web",
+  "name": "@danmaku-deck/web",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "@danmaku-deck/shared": "workspace:*",
     "@eivmosn/utils": "^1.0.0",
-    "@ps5lb/shared": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.76.0",

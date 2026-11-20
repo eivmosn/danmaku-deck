@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import type { Platform } from '@ps5lb/shared'
+import type { Platform } from '@danmaku-deck/shared'
 import { z } from 'zod'
 
 const credentialSchema = z.record(z.string(), z.string())

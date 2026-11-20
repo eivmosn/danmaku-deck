@@ -1,4 +1,4 @@
-import { danmakuEventSchema } from '@ps5lb/shared'
+import { danmakuEventSchema } from '@danmaku-deck/shared'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { DanmakuBus } from '@/danmaku-bus'
 import { describe, levelFor } from '@/danmaku-format'

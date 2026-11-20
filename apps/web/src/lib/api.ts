@@ -1,4 +1,4 @@
-import { statusSchema, type Status } from '@ps5lb/shared'
+import { statusSchema, type Status } from '@danmaku-deck/shared'
 
 /** 读取聚合状态；失败时抛出带上下文的错误，便于界面提示 */
 export async function fetchStatus(signal?: AbortSignal): Promise<Status> {

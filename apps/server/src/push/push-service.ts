@@ -1,4 +1,4 @@
-import type { Platform, Status } from '@ps5lb/shared'
+import type { Platform, Status } from '@danmaku-deck/shared'
 import type { AccountsStore } from '@/accounts/store'
 import type { LogService } from '@/logger'
 import type { Orchestrator } from '@/orchestrator'

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
-import type { DanmakuEvent, DanmakuKind } from '@ps5lb/shared'
+import type { DanmakuEvent, DanmakuKind } from '@danmaku-deck/shared'
 
 /**
  * 小红书弹幕通过 catbus CLI 获取（旧桥验证过的方案）：

@@ -1,4 +1,4 @@
-import type { Platform } from '@ps5lb/shared'
+import type { Platform } from '@danmaku-deck/shared'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

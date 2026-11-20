@@ -1,4 +1,4 @@
-import type { DanmakuEvent, Status } from '@ps5lb/shared'
+import type { DanmakuEvent, Status } from '@danmaku-deck/shared'
 import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import { AppShell } from '@/components/app-shell'

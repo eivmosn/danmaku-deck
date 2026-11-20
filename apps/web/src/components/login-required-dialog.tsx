@@ -1,4 +1,4 @@
-import type { Platform } from '@ps5lb/shared'
+import type { Platform } from '@danmaku-deck/shared'
 import { LogIn } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'

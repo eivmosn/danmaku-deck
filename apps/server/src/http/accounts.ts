@@ -1,4 +1,4 @@
-import { platformSchema } from '@ps5lb/shared'
+import { platformSchema } from '@danmaku-deck/shared'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { AccountsStore } from '@/accounts/store'
 import type { LogService } from '@/logger'

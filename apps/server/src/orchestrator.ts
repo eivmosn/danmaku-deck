@@ -1,4 +1,4 @@
-import type { LiveState, Platform, PlatformStatus, Status } from '@ps5lb/shared'
+import type { LiveState, Platform, PlatformStatus, Status } from '@danmaku-deck/shared'
 
 const PLATFORMS: Platform[] = ['bilibili', 'xiaohongshu']
 

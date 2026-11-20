@@ -1,4 +1,4 @@
-import type { DanmakuEvent } from '@ps5lb/shared'
+import type { DanmakuEvent } from '@danmaku-deck/shared'
 import {
   buildPacket,
   decodeBody,

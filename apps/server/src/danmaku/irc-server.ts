@@ -1,5 +1,5 @@
 import { createServer, type Server, type Socket } from 'node:net'
-import type { DanmakuEvent } from '@ps5lb/shared'
+import type { DanmakuEvent } from '@danmaku-deck/shared'
 import { describeBody } from '@/danmaku-format'
 
 /**

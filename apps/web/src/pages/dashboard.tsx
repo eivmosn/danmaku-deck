@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { LoginRequiredDialog } from '@/components/login-required-dialog'
-import type { Platform } from '@ps5lb/shared'
+import type { Platform } from '@danmaku-deck/shared'
 import { LivePanel } from '@/components/live-panel'
 import { PlatformCard } from '@/components/platform-card'
 import { DanmakuList } from '@/components/danmaku-list'

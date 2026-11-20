@@ -1,4 +1,4 @@
-import type { DanmakuEvent } from '@ps5lb/shared'
+import type { DanmakuEvent } from '@danmaku-deck/shared'
 
 /** 把一条事件转成中文日志文案（Web、日志文件、终端共用） */
 export function describe(event: DanmakuEvent): string {

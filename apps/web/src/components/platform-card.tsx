@@ -1,4 +1,4 @@
-import type { Platform, PlatformStatus } from '@ps5lb/shared'
+import type { Platform, PlatformStatus } from '@danmaku-deck/shared'
 import { BilibiliLogo, XiaohongshuLogo } from '@/components/brand-logos'
 import { Badge } from '@/components/ui/badge'
 import {

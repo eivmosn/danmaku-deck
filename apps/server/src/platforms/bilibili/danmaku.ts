@@ -1,5 +1,5 @@
 import { brotliDecompressSync } from 'node:zlib'
-import type { DanmakuEvent, DanmakuKind } from '@ps5lb/shared'
+import type { DanmakuEvent, DanmakuKind } from '@danmaku-deck/shared'
 
 /**
  * B 站直播弹幕协议。

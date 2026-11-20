@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { DanmakuEvent } from '@ps5lb/shared'
+import type { DanmakuEvent } from '@danmaku-deck/shared'
 import { describe, expect, it, vi } from 'vitest'
 import { AccountsStore } from '@/accounts/store'
 import { DanmakuBus } from '@/danmaku-bus'
