@@ -57,6 +57,13 @@ export function protoString(fields: ProtoField[], field: number): string {
   return hit ? (hit.value as Buffer).toString('utf8') : ''
 }
 
+/** 取所有同号的 length-delimited 字段（repeated 嵌套消息），SEND_GIFT_V2 的 gift_list 用这个 */
+export function protoMessages(fields: ProtoField[], field: number): Buffer[] {
+  return fields
+    .filter((item) => item.field === field && item.wire === 2)
+    .map((item) => item.value as Buffer)
+}
+
 /** 取第一个整数字段（wire=0） */
 export function protoInt(fields: ProtoField[], field: number): number {
   const hit = fields.find((item) => item.field === field && item.wire === 0)

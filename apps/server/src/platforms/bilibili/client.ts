@@ -9,6 +9,7 @@ import {
   OP_HEARTBEAT_REPLY,
   OP_MESSAGE,
   parseCommand,
+  parseSendGiftV2,
   type Packet,
 } from './danmaku'
 import { clearWbiCache, signWbi } from './wbi'
@@ -176,7 +177,17 @@ export class BilibiliDanmakuClient {
       const cmd = typeof item.cmd === 'string' ? item.cmd.split(':')[0] : '?'
       this.cmdCounts.set(cmd, (this.cmdCounts.get(cmd) ?? 0) + 1)
       const event = parseCommand(item)
-      if (event) this.options.onEvent(event)
+      if (event) {
+        this.options.onEvent(event)
+      } else if (cmd === 'SEND_GIFT_V2') {
+        // 新协议是 base64 protobuf，且 gift_list 可能一次多个礼物
+        const pb = (item.data as { pb?: string } | undefined)?.pb
+        if (pb) {
+          for (const gift of parseSendGiftV2(pb, new Date().toISOString())) {
+            this.options.onEvent(gift)
+          }
+        }
+      }
     }
   }
 

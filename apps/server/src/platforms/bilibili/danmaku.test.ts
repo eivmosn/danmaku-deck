@@ -1,6 +1,41 @@
 import { brotliCompressSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
-import { buildPacket, decodeBody, decodePackets, parseCommand, OP_MESSAGE } from './danmaku'
+import {
+  buildPacket,
+  decodeBody,
+  decodePackets,
+  parseCommand,
+  OP_MESSAGE,
+  parseSendGiftV2,
+} from './danmaku'
+
+/** 手写最小 protobuf 编码，字段号严格照 blivedm 的 SendGiftBroadcast */
+function varint(value: number): Buffer {
+  const bytes: number[] = []
+  let rest = value
+  do {
+    const byte = rest & 0x7f
+    rest >>>= 7
+    bytes.push(rest > 0 ? byte | 0x80 : byte)
+  } while (rest > 0)
+  return Buffer.from(bytes)
+}
+function tag(field: number, wire: number): Buffer {
+  return varint((field << 3) | wire)
+}
+function str(field: number, text: string): Buffer {
+  const body = Buffer.from(text, 'utf8')
+  return Buffer.concat([tag(field, 2), varint(body.length), body])
+}
+function int(field: number, value: number): Buffer {
+  return Buffer.concat([tag(field, 0), varint(value)])
+}
+function msg(field: number, body: Buffer): Buffer {
+  return Buffer.concat([tag(field, 2), varint(body.length), body])
+}
+function giftItem(name: string, num: number): Buffer {
+  return Buffer.concat([int(1, 30000), str(2, name), int(3, num)])
+}
 
 /** 消息结构对齐 ps5lb /app/core/danmaku.py 里的 parse_message */
 describe('parseCommand', () => {
@@ -139,5 +174,60 @@ describe('数据包编解码', () => {
 
   it('坏载荷返回 null 而不是抛错', () => {
     expect(decodeBody({ version: 0, op: OP_MESSAGE, body: Buffer.from('not json') })).toBeNull()
+  })
+})
+
+describe('礼物：V1 走 JSON，V2 走 protobuf', () => {
+  const at = '2026-11-21T00:40:00.000Z'
+
+  it('V1 的 SEND_GIFT 仍是 JSON 解析', () => {
+    const event = parseCommand(
+      { cmd: 'SEND_GIFT', data: { uname: '送礼的', giftName: '音乐盒', num: 2 } },
+      at,
+    )
+    expect(event).toMatchObject({ kind: 'gift', user: '送礼的', text: '音乐盒', count: 2 })
+  })
+
+  it('SEND_GIFT_V2 不交给 parseCommand：它是 base64 protobuf，可能一次多个礼物', () => {
+    // 实测 2026-11-21 00:40 收到 SEND_GIFT_V2，data 里只有 pb
+    expect(parseCommand({ cmd: 'SEND_GIFT_V2', data: { pb: 'CgA=' } }, at)).toBeNull()
+  })
+})
+
+describe('parseSendGiftV2（protobuf 礼物）', () => {
+  const at = '2026-11-21T00:40:00.000Z'
+
+  it('解析出送礼人和礼物列表（一场可能多个礼物）', () => {
+    const payload = Buffer.concat([
+      int(1, 386300768),
+      str(2, 'Nulloooo'),
+      msg(10, giftItem('音乐盒', 2)),
+      msg(10, giftItem('小花花', 5)),
+    ])
+
+    const events = parseSendGiftV2(payload.toString('base64'), at)
+    expect(events).toHaveLength(2)
+    expect(events[0]).toMatchObject({ kind: 'gift', user: 'Nulloooo', text: '音乐盒', count: 2 })
+    expect(events[1]).toMatchObject({ text: '小花花', count: 5 })
+  })
+
+  it('盲盒礼物没有 gift_list 时取 blind_gift.original_gift_name', () => {
+    const blind = Buffer.concat([str(3, '幸运礼盒')])
+    const payload = Buffer.concat([str(2, '送礼的'), msg(9, blind)])
+
+    const events = parseSendGiftV2(payload.toString('base64'), at)
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({ kind: 'gift', user: '送礼的', text: '幸运礼盒' })
+  })
+
+  it('没有昵称或字段混乱时返回空数组，不抛错', () => {
+    expect(parseSendGiftV2(Buffer.from('not protobuf').toString('base64'), at)).toEqual([])
+    expect(parseSendGiftV2('', at)).toEqual([])
+    expect(
+      parseSendGiftV2(
+        Buffer.concat([str(2, '无名'), msg(10, Buffer.alloc(0))]).toString('base64'),
+        at,
+      ),
+    ).toEqual([])
   })
 })

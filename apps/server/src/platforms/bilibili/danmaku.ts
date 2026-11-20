@@ -1,6 +1,6 @@
 import { brotliDecompressSync, inflateSync } from 'node:zlib'
 import type { DanmakuEvent, DanmakuKind } from '@danmaku-deck/shared'
-import { decodeProto, protoInt, protoString } from './protobuf'
+import { decodeProto, protoInt, protoMessages, protoString } from './protobuf'
 
 /**
  * B 站直播弹幕协议。
@@ -132,6 +132,55 @@ const INTERACT: Record<number, { kind: DanmakuKind; text: string }> = {
   3: { kind: 'like', text: '分享了直播间' },
 }
 
+/**
+ * SEND_GIFT_V2：data.pb 是 base64 protobuf「SendGiftBroadcast」。
+ *
+ * 字段对照 blivedm（已适配该新协议）与官方 proto：
+ *   SendGiftBroadcast: uid=1 uname=2 face=3 guard_level=5 medal_info=8 blind_gift=9 gift_list=10
+ *   GiftItem:          gift_id=1 gift_name=2 num=3
+ *   BlindGift:         original_gift_name=3
+ *
+ * gift_list 是数组，所以这里返回多条事件。
+ */
+export function parseSendGiftV2(base64Body: string, at: string): DanmakuEvent[] {
+  let raw: Buffer
+  try {
+    raw = Buffer.from(base64Body, 'base64')
+  } catch {
+    return []
+  }
+
+  const fields = decodeProto(raw)
+  const user = protoString(fields, 2)
+  if (!user) return []
+
+  const events: DanmakuEvent[] = []
+  for (const item of protoMessages(fields, 10)) {
+    const gift = decodeProto(item)
+    const name = protoString(gift, 2)
+    if (!name) continue
+    events.push({
+      platform: 'bilibili',
+      kind: 'gift',
+      user,
+      text: name,
+      count: protoInt(gift, 3) || 1,
+      at,
+    })
+  }
+
+  if (events.length === 0) {
+    // 盲盒礼物 gift_list 可能为空，真实名字在 blind_gift.original_gift_name
+    const blind = protoMessages(fields, 9)[0]
+    const name = blind ? protoString(decodeProto(blind), 3) : ''
+    if (name) {
+      events.push({ platform: 'bilibili', kind: 'gift', user, text: name, count: 1, at })
+    }
+  }
+
+  return events
+}
+
 /** 把一条 B 站消息规整成统一的事件；不认识返回 null */
 export function parseCommand(raw: unknown, at = new Date().toISOString()): DanmakuEvent | null {
   if (!raw || typeof raw !== 'object') return null
@@ -161,6 +210,11 @@ export function parseCommand(raw: unknown, at = new Date().toISOString()): Danma
     }
   }
 
+  // SEND_GIFT_V2 是 2026-07 灰度的新协议，data.pb 里是 base64 protobuf，
+  // 且 gift_list 是数组（一次可能多个礼物），单条返回值放不下，
+  // 由 parseSendGiftV2 解析后逐条发布。
+  if (cmd === 'SEND_GIFT_V2') return null
+
   if (cmd === 'GUARD_BUY') {
     const data = message.data ?? {}
     const user = String(data.username ?? '')
@@ -176,7 +230,7 @@ export function parseCommand(raw: unknown, at = new Date().toISOString()): Danma
     }
   }
 
-  if (cmd === 'SUPER_CHAT_MESSAGE') {
+  if (cmd.startsWith('SUPER_CHAT_MESSAGE')) {
     const data = message.data ?? {}
     const userInfo = (data.user_info ?? {}) as Record<string, unknown>
     const user = String(userInfo.uname ?? '')
