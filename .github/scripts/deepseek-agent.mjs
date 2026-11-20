@@ -57,6 +57,60 @@ const [issue, comments, repo] = await Promise.all([
   ghApi(`/repos/${REPO}`),
 ])
 
+/**
+ * 给模型一点真实的仓库内容，否则它只能靠猜。
+ * 控制在：README 4k、文件树 100 条、package.json 脚本/依赖名、评论里点名的文件各 8k。
+ */
+async function loadRepoContext() {
+  const parts = []
+
+  const readme = await ghApi(`/repos/${REPO}/readme`).catch(() => null)
+  if (readme?.content) {
+    const text = Buffer.from(readme.content, 'base64').toString('utf8').slice(0, 4000)
+    parts.push(`### README
+${text}`)
+  }
+
+  const tree = await ghApi(`/repos/${REPO}/git/trees/${repo.default_branch}`).catch(() => null)
+  if (tree?.tree) {
+    const lines = tree.tree
+      .slice(0, 100)
+      .map((item) => `${item.type === 'tree' ? '[目录]' : '[文件]'} ${item.path}`)
+    parts.push(`### 顶层结构\n${lines.join('\n')}`)
+  }
+
+  const pkg = await ghApi(`/repos/${REPO}/contents/package.json`).catch(() => null)
+  if (pkg?.content) {
+    try {
+      const parsed = JSON.parse(Buffer.from(pkg.content, 'base64').toString('utf8'))
+      const scripts = Object.keys(parsed.scripts ?? {}).join(', ')
+      const deps = Object.keys(parsed.dependencies ?? {}).join(', ')
+      parts.push(`### package.json\nscripts: ${scripts}\n依赖: ${deps}`)
+    } catch {
+      // 解析不了就算了
+    }
+  }
+
+  // 评论里点到的文件，把内容带上（最多 3 个）
+  const mentioned = [...TRIGGER_TEXT.matchAll(/[\w./-]+\.(?:ts|tsx|js|mjs|json|md|yml|yaml)/g)]
+    .map((match) => match[0].replace(/^\.\//, ''))
+    .filter((path, index, list) => list.indexOf(path) === index)
+    .slice(0, 3)
+
+  for (const path of mentioned) {
+    // 文件不多，顺序取足够；并发去拉会让后面的接口调用更难读懂
+    // eslint-disable-next-line no-await-in-loop
+    const file = await ghApi(`/repos/${REPO}/contents/${path}`).catch(() => null)
+    if (!file?.content) continue
+    const text = Buffer.from(file.content, 'base64').toString('utf8').slice(0, 8000)
+    parts.push(`### 文件 ${path}\n\`\`\`\n${text}\n\`\`\``)
+  }
+
+  return parts.join('\n\n')
+}
+
+const repoContext = await loadRepoContext()
+
 const history = comments
   .slice(-8)
   .map((item) => `${item.user.login}: ${(item.body ?? '').slice(0, 800)}`)
@@ -64,6 +118,9 @@ const history = comments
 
 const prompt = `你是这个仓库的维护助手，用中文回答。仓库：${REPO}（默认分支 ${repo.default_branch}）
 当前是 ${issue.pull_request ? 'PR' : 'issue'} #${ISSUE_NUMBER}：${issue.title}
+
+你可以看到的仓库内容（有据可依时才下结论，看不到就说看不到）：
+${repoContext || '（没抓到任何文件）'}
 
 正文：
 ${(issue.body ?? '（空）').slice(0, 3000)}
