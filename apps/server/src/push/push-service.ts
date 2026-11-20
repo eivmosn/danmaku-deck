@@ -56,11 +56,18 @@ export class PushService {
     if (this.starting) return
     this.starting = true
     try {
+      const enabled = (platform: Platform): boolean =>
+        Boolean(status.platforms.find((item) => item.platform === platform)?.enabled)
+
+      // 关掉开关要停掉已经在跑的那一路
+      for (const platform of this.pushers.keys()) {
+        if (!enabled(platform)) this.stopPlatform(platform, '已关闭开关')
+      }
+
       // 两路互不依赖，并发启动
-      const pending = (['bilibili', 'xiaohongshu'] as Platform[]).filter((platform) => {
-        if (this.pushers.has(platform)) return false
-        return Boolean(status.platforms.find((item) => item.platform === platform)?.enabled)
-      })
+      const pending = (['bilibili', 'xiaohongshu'] as Platform[]).filter(
+        (platform) => !this.pushers.has(platform) && enabled(platform),
+      )
       await Promise.all(pending.map((platform) => this.startPlatform(platform)))
     } finally {
       this.starting = false
@@ -106,6 +113,14 @@ export class PushService {
     pusher.start()
     this.pushers.set(platform, pusher)
     this.deps.logs.write('info', label, '已开始推流', { server: target.server })
+  }
+
+  private stopPlatform(platform: Platform, reason: string): void {
+    const pusher = this.pushers.get(platform)
+    if (!pusher) return
+    pusher.stop()
+    this.pushers.delete(platform)
+    this.deps.logs.write('info', LABEL[platform], `已停止推流（${reason}）`)
   }
 
   private stopAll(): void {

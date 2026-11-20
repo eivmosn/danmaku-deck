@@ -77,13 +77,21 @@ export class DanmakuService {
       for (const platform of ['bilibili', 'xiaohongshu'] as Platform[]) this.disconnect(platform)
       return
     }
+    const enabled = (platform: Platform): boolean =>
+      Boolean(status.platforms.find((item) => item.platform === platform)?.enabled)
+
+    for (const platform of this.clients.keys()) {
+      if (!enabled(platform) || !this.deps.accounts.get(platform)) {
+        this.disconnect(platform)
+      }
+    }
+
     if (this.starting) return
     this.starting = true
     try {
       const pending = (['bilibili', 'xiaohongshu'] as Platform[]).filter((platform) => {
         if (this.clients.has(platform)) return false
-        const enabled = status.platforms.find((item) => item.platform === platform)?.enabled
-        return Boolean(enabled) && this.deps.accounts.get(platform) !== null
+        return enabled(platform) && this.deps.accounts.get(platform) !== null
       })
       await Promise.all(pending.map((platform) => this.connectPlatform(platform)))
     } finally {
