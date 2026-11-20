@@ -5,6 +5,17 @@
     "suspicious": "warn",
     "perf": "warn"
   },
-  "env": { "es2024": true, "node": true },
-  "ignorePatterns": ["dist", "node_modules", "coverage", "apps/web/dist"]
+  "env": {
+    "es2024": true,
+    "node": true
+  },
+  "ignorePatterns": [
+    "dist",
+    "dist-bundle",
+    "node_modules",
+    "coverage",
+    "apps/web/dist",
+    "apps/*/dist*",
+    "packages/*/dist*"
+  ]
 }

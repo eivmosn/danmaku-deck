@@ -21,7 +21,8 @@ const orchestrator = new Orchestrator({ logger: createLogger(logs, '收流') })
 const accounts = new AccountsStore()
 const pushTargets = new PushTargetsStore()
 const bus = new DanmakuBus()
-const webDir = new URL('../../web/dist', import.meta.url).pathname
+// 前端产物目录：容器/单文件部署时用环境变量指定
+const webDir = process.env.PS5LB_WEB_DIR ?? new URL('../../web/dist', import.meta.url).pathname
 const app = buildApp({
   orchestrator,
   logs,
