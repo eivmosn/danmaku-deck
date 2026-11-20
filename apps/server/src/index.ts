@@ -8,6 +8,7 @@ import { createLogger, LogService } from '@/logger'
 import { Orchestrator } from '@/orchestrator'
 import { IrcServer } from '@/danmaku/irc-server'
 import { BilibiliLive } from '@/platforms/bilibili/live'
+import { DnsServer } from '@/network/dns'
 import { PushService } from '@/push/push-service'
 import { PushTargetsStore } from '@/push/targets-store'
 import { DanmakuService } from '@/services/danmaku-service'
@@ -73,6 +74,28 @@ const push = new PushService({
 push.start()
 
 // PS5 聊天窗口：连 irc.twitch.tv:IRC_PORT，收到的弹幕直接显示在屏幕
+// 内置 DNS：默认关闭，开着就能替代 dnsmasq 容器
+let dns: DnsServer | null = null
+if (config.dnsEnabled) {
+  dns = new DnsServer({
+    port: config.dnsPort,
+    hijackDomains: ['twitch.tv', 'live-video.net'],
+    hijackIp: config.dnsHijackIp,
+  })
+  try {
+    await dns.listen()
+    createLogger(logs, '系统').info('DNS 劫持已启动', {
+      port: config.dnsPort,
+      ip: config.dnsHijackIp,
+    })
+  } catch (error) {
+    createLogger(logs, '系统').error('DNS 启动失败', {
+      reason: error instanceof Error ? error.message : String(error),
+    })
+    dns = null
+  }
+}
+
 const irc = new IrcServer({ port: config.ircPort })
 try {
   await irc.listen()
@@ -100,6 +123,7 @@ const shutdown = async (signal: string): Promise<void> => {
   danmaku.stop()
   push.stop()
   await irc.close()
+  dns?.close()
   await app.close()
   process.exit(0)
 }
