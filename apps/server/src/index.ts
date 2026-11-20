@@ -62,11 +62,12 @@ const push = new PushService({
     const account = accounts.get('bilibili')
     const secret = accounts.secret('bilibili')
     if (!account || !secret) return null
-    return bilibiliLive.startLive({
+    const started = await bilibiliLive.startLive({
       uid: account.externalId,
       cookie: cookieOf(secret),
       csrf: secret.bili_jct ?? '',
     })
+    return started.target
   },
 })
 push.start()

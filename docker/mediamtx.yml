@@ -1,0 +1,27 @@
+# MediaMTX 只负责收流；开播/停播通过 hook 通知我们的服务
+logLevel: info
+logDestinations: [stdout]
+
+rtmp: yes
+rtmpAddress: :1935
+hls: no
+webrtc: no
+srt: no
+api: yes
+apiAddress: :9997
+
+pathDefaults:
+  # PS5 的推流路径由推送地址决定，这里通配接收
+  source: publisher
+  # 流变得可读（PS5 开始推）→ 通知服务端
+  # 注意：必须跑在 alpine 变体镜像上（latest-ffmpeg），scratch 版本没有 shell
+  runOnAvailable: >
+    wget -q -O /dev/null
+    "http://127.0.0.1:8787/api/hooks/stream/available?path=$MTX_PATH&source_type=$MTX_SOURCE_TYPE&source_id=$MTX_SOURCE_ID"
+  # 流不可用（PS5 停止推）→ 通知服务端
+  runOnUnavailable: >
+    wget -q -O /dev/null
+    "http://127.0.0.1:8787/api/hooks/stream/unavailable?path=$MTX_PATH"
+
+paths:
+  all_others:

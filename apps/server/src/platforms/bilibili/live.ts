@@ -9,6 +9,15 @@ const SERVER_TIME = 'https://api.bilibili.com/x/report/click/now'
 const LIVE_VERSION =
   'https://api.live.bilibili.com/xlive/app-blink/v1/liveVersionInfo/getHomePageLiveVersion'
 const START_LIVE = 'https://api.live.bilibili.com/room/v1/Room/startLive'
+const STOP_LIVE = 'https://api.live.bilibili.com/room/v1/Room/stopLive'
+
+/** 开播用的通道，关播时必须与之配对 */
+export type LiveChannel = 'electron' | 'livehime'
+
+export interface StartedLive {
+  target: PushTarget
+  channel: LiveChannel
+}
 
 export interface StartLiveOptions {
   uid: string
@@ -34,7 +43,7 @@ export class BilibiliLive {
     this.fetchImpl = fetchImpl
   }
 
-  async startLive(options: StartLiveOptions): Promise<PushTarget> {
+  async startLive(options: StartLiveOptions): Promise<StartedLive> {
     const fetchImpl = options.fetchImpl ?? this.fetchImpl
     const headers = {
       'User-Agent': UA,
@@ -79,7 +88,45 @@ export class BilibiliLive {
     const addr = body.data?.rtmp?.addr
     const key = body.data?.rtmp?.code
     if (!addr || !key) throw new Error('B 站没给推流地址（可能分区不可用）')
-    return { platform: 'bilibili', server: addr, key }
+    return { target: { platform: 'bilibili', server: addr, key }, channel: 'electron' }
+  }
+
+  /** 关播；channel 必须与开播时一致 */
+  async stopLive(input: {
+    roomId: string
+    cookie: string
+    csrf: string
+    channel: LiveChannel
+  }): Promise<void> {
+    const payload =
+      input.channel === 'electron'
+        ? signElectron({
+            room_id: input.roomId,
+            platform: 'web_electron_link',
+            csrf_token: input.csrf,
+            csrf: input.csrf,
+          })
+        : signApp({
+            room_id: input.roomId,
+            platform: 'pc_link',
+            csrf_token: input.csrf,
+            csrf: input.csrf,
+          })
+
+    const response = await this.fetchImpl(STOP_LIVE, {
+      method: 'POST',
+      headers: {
+        'User-Agent': UA,
+        Cookie: input.cookie,
+        Referer: 'https://live.bilibili.com/',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(payload as unknown as Record<string, string>).toString(),
+    })
+    const body = (await response.json()) as { code?: number; message?: string; msg?: string }
+    if (body.code !== 0) {
+      throw new Error(body.message ?? body.msg ?? `关播接口返回 ${body.code}`)
+    }
   }
 
   private async roomIdByUid(

@@ -1,0 +1,22 @@
+FROM docker.1panel.live/library/node:22-alpine AS build
+WORKDIR /src
+RUN npm config set registry https://registry.npmmirror.com
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/server/package.json apps/server/
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
+RUN npm i -g pnpm@10 && pnpm install --frozen-lockfile
+
+COPY . .
+RUN pnpm build
+
+FROM docker.1panel.live/library/node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+RUN apk add --no-cache ffmpeg
+COPY --from=build /src/apps/server/dist ./dist
+COPY --from=build /src/apps/web/dist ./apps/web/dist
+COPY --from=build /src/node_modules ./node_modules
+COPY --from=build /src/apps/server/node_modules ./apps/server/node_modules
+EXPOSE 8787 6667
+CMD ["node", "dist/index.js"]

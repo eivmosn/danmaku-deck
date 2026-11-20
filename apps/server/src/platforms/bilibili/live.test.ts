@@ -35,9 +35,10 @@ describe('BilibiliLive', () => {
     })
 
     const live = new BilibiliLive(impl)
-    const target = await live.startLive({ uid: '1', cookie: 'SESSDATA=x', csrf: 'csrf-token' })
+    const started = await live.startLive({ uid: '1', cookie: 'SESSDATA=x', csrf: 'csrf-token' })
 
-    expect(target).toEqual({
+    expect(started.channel).toBe('electron')
+    expect(started.target).toEqual({
       platform: 'bilibili',
       server: 'rtmp://push.example.com/live',
       key: 'key-1',

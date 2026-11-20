@@ -51,7 +51,7 @@ PS5 ──DNS(劫持)──> NAS:53
 │  ├─ 443 SNI 中继（替代 twitch-relay 容器）                 │
 │  └─ 推流编排（ffmpeg 子进程）                              │
 ├─────────────────────────────────────────────────────────┤
-│  mediamtx（收流，替代 ps5lb 的 1935）                      │
+│  mediamtx（收流，替代 ps5lb 的 1935；用 alpine 的 ffmpeg 变体）│
 ├─────────────────────────────────────────────────────────┤
 │  mihomo（代理引擎，保留）                                  │
 └─────────────────────────────────────────────────────────┘
@@ -188,3 +188,9 @@ ps5-live-bridge/
    - node-media-server：纯 Node 生态统一，但性能和维护一般
 3. **Web 面板的 UI 框架**
    - React（团队熟、生态大）还是 Vue（你低代码项目用的）
+
+## 9. 部署注意
+
+- MediaMTX 必须用 `latest-ffmpeg` 变体：官方 `latest` 基于 `scratch`，没有 shell，`runOnAvailable` 之类的 hook 命令无法执行
+- hook 用 `wget`（alpine/busybox 自带），不用 `curl`
+- 迁移期间新旧容器并存，等新服务跑通再停 `ps5lb`

@@ -1,0 +1,41 @@
+# 目标形态：3 个容器（server + mediamtx + 可选 mihomo）
+# 目前还在迁移中，旧的 ps5lb / ps5lb-dns / twitch-relay 先不要停，等新服务验证完再切换。
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    container_name: ps5lb-server
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./data:/app/.ps5lb
+      - ./logs:/app/logs
+    environment:
+      PS5LB_PORT: '8787'
+      PS5LB_IRC_PORT: '6667'
+      PS5LB_RTMP_PORT: '1935'
+      PS5LB_LOG_DIR: /app/logs
+      PS5LB_TZ: Asia/Shanghai
+      # 打开后开播时会自动调用 B 站开播接口（会真的开播，确认稳定后再开）
+      PS5LB_AUTO_START_BILI: '0'
+
+  mediamtx:
+    # 必须用 ffmpeg 变体：官方 latest 镜像基于 scratch，没有 shell，
+    # hook 里的命令根本无法执行；这个变体是 alpine，自带 sh 和 busybox wget
+    image: bluenviron/mediamtx:latest-ffmpeg
+    container_name: ps5lb-mediamtx
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+
+  # 需要出海时才启用：docker compose --profile proxy up -d
+  mihomo:
+    image: metacubex/mihomo:latest
+    container_name: ps5lb-mihomo
+    restart: unless-stopped
+    network_mode: host
+    profiles: ['proxy']
+    volumes:
+      - ./mihomo:/root/.config/mihomo
