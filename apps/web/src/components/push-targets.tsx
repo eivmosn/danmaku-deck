@@ -1,6 +1,7 @@
 import type { Platform } from '@ps5lb/shared'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface TargetRow {
   platform: Platform
@@ -57,24 +58,24 @@ export function PushTargets() {
         return (
           <div key={platform} className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[var(--color-fg)]">{LABEL[platform]}</span>
-              <span className="text-[11px] text-[var(--color-muted)]">
+              <span className="text-sm text-[var(--foreground)]">{LABEL[platform]}</span>
+              <span className="text-[11px] text-[var(--muted-foreground)]">
                 {configured ? '已配置' : '未配置'}
               </span>
             </div>
-            <input
+            <Input
               value={server[platform]}
               onChange={(event) => setServer({ ...server, [platform]: event.target.value })}
               placeholder="rtmp://…/live"
-              className="h-9 rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 font-mono text-xs text-[var(--color-fg)] outline-none focus:border-[var(--color-bilibili)]"
+              className="font-mono text-xs"
             />
             <div className="flex gap-2">
-              <input
+              <Input
                 value={key[platform]}
                 onChange={(event) => setKey({ ...key, [platform]: event.target.value })}
                 placeholder={configured?.hasKey ? '已保存，留空则不修改' : '推流密钥'}
                 type="password"
-                className="h-9 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 font-mono text-xs text-[var(--color-fg)] outline-none focus:border-[var(--color-bilibili)]"
+                className="flex-1 font-mono text-xs"
               />
               <Button
                 size="sm"
@@ -88,7 +89,7 @@ export function PushTargets() {
           </div>
         )
       })}
-      {message ? <p className="text-xs text-[var(--color-muted)]">{message}</p> : null}
+      {message ? <p className="text-xs text-[var(--muted-foreground)]">{message}</p> : null}
     </div>
   )
 }

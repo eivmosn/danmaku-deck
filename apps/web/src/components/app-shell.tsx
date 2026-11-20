@@ -82,8 +82,8 @@ function RailItem({ to, label, collapsed, icon, onClick }: RailItemProps) {
           cn(
             base,
             isActive
-              ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
-              : 'text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]',
+              ? 'bg-[var(--muted)] text-[var(--foreground)]'
+              : 'text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]',
           )
         }
       >
@@ -99,7 +99,7 @@ function RailItem({ to, label, collapsed, icon, onClick }: RailItemProps) {
       onClick={onClick}
       className={cn(
         base,
-        'w-full text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]',
+        'w-full text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]',
       )}
     >
       {content}
@@ -126,8 +126,8 @@ export function AppShell({ children }: AppShellProps) {
     <div className="flex h-screen overflow-hidden bg-[var(--color-bg)]">
       <aside
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-[var(--color-border)]',
-          'bg-[var(--color-surface)] transition-[width] duration-300 ease-out md:flex',
+          'sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-[var(--border)]',
+          'bg-[var(--card)] transition-[width] duration-300 ease-out md:flex',
           collapsed ? 'w-16' : 'w-56',
         )}
       >
@@ -146,8 +146,8 @@ export function AppShell({ children }: AppShellProps) {
               collapsed ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100',
             )}
           >
-            <div className="text-sm font-semibold text-[var(--color-fg)]">直播桥</div>
-            <div className="text-[11px] text-[var(--color-muted)]">Live Bridge</div>
+            <div className="text-sm font-semibold text-[var(--foreground)]">直播桥</div>
+            <div className="text-[11px] text-[var(--muted-foreground)]">Live Bridge</div>
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export function AppShell({ children }: AppShellProps) {
           })}
         </nav>
 
-        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] p-2">
+        <div className="flex flex-col gap-1 border-t border-[var(--border)] p-2">
           <RailItem
             collapsed={collapsed}
             label={collapsed ? '展开' : '收起侧边栏'}
@@ -183,7 +183,7 @@ export function AppShell({ children }: AppShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <nav className="flex items-center gap-1 overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-surface)] p-2 md:hidden">
+        <nav className="flex items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--card)] p-2 md:hidden">
           {NAV.map((item) => {
             const Icon = item.icon
             return (
@@ -195,8 +195,8 @@ export function AppShell({ children }: AppShellProps) {
                   cn(
                     'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm',
                     isActive
-                      ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
-                      : 'text-[var(--color-muted)]',
+                      ? 'bg-[var(--muted)] text-[var(--foreground)]'
+                      : 'text-[var(--muted-foreground)]',
                   )
                 }
               >
@@ -209,7 +209,7 @@ export function AppShell({ children }: AppShellProps) {
             type="button"
             onClick={toggleTheme}
             aria-label="切换主题"
-            className="ml-auto rounded-lg p-2 text-[var(--color-muted)]"
+            className="ml-auto rounded-lg p-2 text-[var(--muted-foreground)]"
           >
             {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>

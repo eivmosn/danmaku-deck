@@ -1,0 +1,7 @@
+{
+  "// 说明": "本项目用 Tailwind v4 + coss UI，不使用 UnoCSS；关掉 UnoCSS 插件避免误报 --theme() 语法",
+  "unocss.disable": true,
+  "unocss.enable": false,
+  "tailwindCSS.experimental.configFile": "apps/web/src/index.css",
+  "css.lint.unknownAtRules": "ignore"
+}

@@ -87,11 +87,11 @@ export function BilibiliLogin({ loggedIn }: { loggedIn: boolean }) {
   return (
     <div className="flex flex-col gap-3">
       {url && busy ? (
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
           <div className="rounded-lg bg-white p-3">
             <QRCodeSVG value={url} size={148} />
           </div>
-          <p className="text-xs text-[var(--color-muted)]">
+          <p className="text-xs text-[var(--muted-foreground)]">
             {phase === 'scanned' ? '已扫码，请在手机上确认' : '用哔哩哔哩 App 扫码'}
           </p>
         </div>

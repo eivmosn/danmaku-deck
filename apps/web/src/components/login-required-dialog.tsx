@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button'
 const META = {
   bilibili: {
     name: '哔哩哔哩',
-    color: 'var(--color-bilibili)',
+    color: 'var(--bilibili)',
     hint: '需要用哔哩哔哩 App 扫码登录',
   },
   xiaohongshu: {
     name: '小红书',
-    color: 'var(--color-xiaohongshu)',
+    color: 'var(--xiaohongshu)',
     hint: '需要粘贴网页版 cookie，并输入每场的 6 位开播码',
   },
 } as const
@@ -32,7 +32,7 @@ export function LoginRequiredDialog({ platform, onClose }: LoginRequiredDialogPr
     <Dialog.Root open={platform !== null} onOpenChange={(open) => (open ? null : onClose())}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,380px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-2xl">
+        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,380px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-2xl">
           <div className="flex items-center gap-3">
             <span
               className="inline-flex size-11 items-center justify-center rounded-[10px] text-white"
@@ -45,16 +45,16 @@ export function LoginRequiredDialog({ platform, onClose }: LoginRequiredDialogPr
               )}
             </span>
             <div>
-              <Dialog.Title className="text-base font-semibold text-[var(--color-fg)]">
+              <Dialog.Title className="text-base font-semibold text-[var(--foreground)]">
                 先登录{meta?.name}
               </Dialog.Title>
-              <p className="mt-0.5 text-[13px] text-[var(--color-muted)]">
+              <p className="mt-0.5 text-[13px] text-[var(--muted-foreground)]">
                 登录后才能把画面推到这个平台
               </p>
             </div>
           </div>
 
-          <p className="mt-4 rounded-xl bg-[var(--color-elevated)] px-3 py-2.5 text-[13px] text-[var(--color-muted)]">
+          <p className="mt-4 rounded-xl bg-[var(--muted)] px-3 py-2.5 text-[13px] text-[var(--muted-foreground)]">
             {meta?.hint}
           </p>
 
@@ -62,7 +62,7 @@ export function LoginRequiredDialog({ platform, onClose }: LoginRequiredDialogPr
             <Dialog.Close render={<Button variant="ghost" size="sm" />}>稍后</Dialog.Close>
             <Button
               size="sm"
-              variant="primary"
+              variant="default"
               onClick={() => {
                 onClose()
                 navigate('/settings')

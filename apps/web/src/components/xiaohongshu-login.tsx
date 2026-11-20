@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { KeyRound, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useLiveStore } from '@/stores/live'
 
 /** 小红书：cookie 登录 + 每场开播的 6 位开播码 */
@@ -37,16 +39,17 @@ export function XiaohongshuLogin({ loggedIn }: { loggedIn: boolean }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2">
-        <textarea
+        <Textarea
           value={cookie}
           onChange={(event) => setCookie(event.target.value)}
           placeholder="粘贴网页版 cookie（含 a1 与 web_session）"
           rows={2}
-          className="w-full resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] p-3 font-mono text-[11px] text-[var(--color-fg)] outline-none focus:border-[var(--color-xiaohongshu)]"
+          className="w-full resize-none font-mono text-[11px]"
         />
         <Button
           size="sm"
           variant="secondary"
+          className="self-start"
           disabled={busy || cookie.trim().length < 10}
           onClick={() => void post('/api/platforms/xiaohongshu/login', { cookie: cookie.trim() })}
         >
@@ -56,12 +59,12 @@ export function XiaohongshuLogin({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       <div className="flex gap-2">
-        <input
+        <Input
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
           placeholder="6 位开播码"
           inputMode="numeric"
-          className="h-9 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 font-mono text-sm tracking-widest text-[var(--color-fg)] outline-none focus:border-[var(--color-xiaohongshu)]"
+          className="flex-1 font-mono tracking-widest"
         />
         <Button
           size="sm"
@@ -74,7 +77,7 @@ export function XiaohongshuLogin({ loggedIn }: { loggedIn: boolean }) {
         </Button>
       </div>
 
-      {message ? <p className="text-xs text-[var(--color-muted)]">{message}</p> : null}
+      {message ? <p className="text-xs text-[var(--muted-foreground)]">{message}</p> : null}
     </div>
   )
 }

@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 
 const META: Record<Platform, { name: string; color: string }> = {
-  bilibili: { name: '哔哩哔哩', color: 'var(--color-bilibili)' },
-  xiaohongshu: { name: '小红书', color: 'var(--color-xiaohongshu)' },
+  bilibili: { name: '哔哩哔哩', color: 'var(--bilibili)' },
+  xiaohongshu: { name: '小红书', color: 'var(--xiaohongshu)' },
 }
 
 interface PlatformCardProps {
@@ -30,7 +30,7 @@ export function PlatformCard({ status, platform, onToggle }: PlatformCardProps) 
           </span>
           <div className="leading-tight">
             <CardTitle className="text-sm">{meta.name}</CardTitle>
-            <div className="text-[11px] text-[var(--color-muted)]">
+            <div className="text-[11px] text-[var(--muted-foreground)]">
               {status?.accountName ?? '未登录'}
             </div>
           </div>
@@ -38,22 +38,17 @@ export function PlatformCard({ status, platform, onToggle }: PlatformCardProps) 
         <span
           className="rounded-full px-2 py-0.5 text-[11px]"
           style={{
-            color: enabled ? meta.color : 'var(--color-muted)',
-            background: enabled ? `${meta.color}1f` : 'var(--color-elevated)',
+            color: enabled ? meta.color : 'var(--muted-foreground)',
+            background: enabled ? `${meta.color}1f` : 'var(--muted)',
           }}
         >
           {enabled ? '已启用' : '已停用'}
         </span>
       </CardHeader>
 
-      <CardContent className="flex items-center justify-between border-t border-[var(--color-border)] pt-3">
-        <span className="text-[11px] text-[var(--color-muted)]">开播时推送</span>
-        <Switch
-          label=""
-          aria-label={`${meta.name}推送`}
-          checked={enabled}
-          onCheckedChange={onToggle}
-        />
+      <CardContent className="flex items-center justify-between border-t border-[var(--border)] pt-3">
+        <span className="text-[11px] text-[var(--muted-foreground)]">开播时推送</span>
+        <Switch aria-label={`${meta.name}推送`} checked={enabled} onCheckedChange={onToggle} />
       </CardContent>
     </Card>
   )

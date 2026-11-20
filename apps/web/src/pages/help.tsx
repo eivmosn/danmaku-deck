@@ -63,8 +63,10 @@ export function HelpPage() {
   return (
     <div className="flex flex-col gap-4">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">帮助</h1>
-        <p className="mt-1 text-sm text-[var(--color-muted)]">第一次使用，按这几步设置 PS5 即可</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">帮助</h1>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          第一次使用，按这几步设置 PS5 即可
+        </p>
       </header>
 
       {STEPS.map((step) => (
@@ -86,10 +88,10 @@ export function HelpPage() {
         <CardHeader>
           <CardTitle className="text-sm">常见问题</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col divide-y divide-[var(--color-border)]">
+        <CardContent className="flex flex-col divide-y divide-[var(--border)]">
           {FAQ.map((item) => (
             <div key={item.q} className="py-2.5">
-              <p className="text-[13px] font-medium text-[var(--color-fg)]">{item.q}</p>
+              <p className="text-[13px] font-medium text-[var(--foreground)]">{item.q}</p>
               <p className="mt-1 text-[13px] leading-relaxed">{item.a}</p>
             </div>
           ))}

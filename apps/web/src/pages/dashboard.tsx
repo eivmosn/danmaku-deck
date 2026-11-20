@@ -28,8 +28,8 @@ export function DashboardPage() {
     <div className="flex flex-col gap-5">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">概览</h1>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">概览</h1>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             {live
               ? `本场已播 ${formatUptime(status?.uptimeSeconds ?? 0)}`
               : 'PS5 一旦开始直播，这里会实时显示状态'}
@@ -39,7 +39,7 @@ export function DashboardPage() {
           className={`rounded-full px-3 py-1 text-xs ${
             live
               ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-300'
-              : 'bg-[var(--color-elevated)] text-[var(--color-muted)]'
+              : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
           }`}
         >
           {STATE_TEXT[status?.state ?? 'idle'] ?? '未知'}
@@ -66,7 +66,7 @@ export function DashboardPage() {
           <CardTitle className="text-sm">观众弹幕</CardTitle>
           <Link
             to="/danmaku"
-            className="text-[11px] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+            className="text-[11px] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
           >
             查看全部
           </Link>

@@ -1,11 +1,11 @@
 import type { Status } from '@ps5lb/shared'
-import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
 import { AlertTriangle, ArrowUpRight } from 'lucide-react'
+import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
+import { GlowOrb } from '@/components/glow-orb'
 import { Link } from 'react-router'
 
 const LABEL = { bilibili: '哔哩哔哩', xiaohongshu: '小红书' } as const
 
-/** 60 根电平条，各自不同的幅度与节奏，看起来像真实的音频波形 */
 const BARS = Array.from({ length: 56 }, (_, index) => ({
   base: 6 + ((index * 7) % 22),
   peak: 18 + ((index * 13) % 26),
@@ -21,7 +21,7 @@ function Waveform({ color }: { color: string }) {
           key={index}
           className="w-[3px] rounded-full"
           style={{ background: color }}
-          initial={{ height: bar.base, opacity: 0.45 }}
+          initial={{ height: bar.base, opacity: 0.5 }}
           animate={{ height: [bar.base, bar.peak, bar.base * 0.7, bar.peak * 0.85, bar.base] }}
           transition={{
             duration: bar.duration,
@@ -40,11 +40,30 @@ function Uptime({ seconds }: { seconds: number }) {
   const spring = useSpring(raw, { stiffness: 90, damping: 18 })
   const text = useTransform(spring, (value) => {
     const total = Math.max(0, Math.floor(value))
-    const minutes = Math.floor(total / 60)
-    return `${minutes}:${String(total % 60).padStart(2, '0')}`
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
   })
   raw.set(seconds)
   return <motion.span className="tabular-nums">{text}</motion.span>
+}
+
+/** 暗色下的弥散光晕：两团模糊光斑缓慢游走 */
+function Glow({ color }: { color: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 hidden overflow-hidden rounded-2xl dark:block">
+      <motion.div
+        className="absolute -left-16 -top-24 size-64 rounded-full blur-3xl"
+        style={{ background: color, opacity: 0.28 }}
+        animate={{ x: [0, 40, -12, 0], y: [0, 18, 34, 0], scale: [1, 1.18, 0.94, 1] }}
+        transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute -bottom-24 right-0 size-72 rounded-full blur-3xl"
+        style={{ background: color, opacity: 0.18 }}
+        animate={{ x: [0, -50, 20, 0], y: [0, -24, -8, 0], scale: [1, 0.9, 1.12, 1] }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
+      />
+    </div>
+  )
 }
 
 export function LivePanel({ status }: { status: Status | null }) {
@@ -68,44 +87,29 @@ export function LivePanel({ status }: { status: Status | null }) {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-      className="relative overflow-hidden rounded-2xl border bg-[var(--color-surface)]/70 p-4 backdrop-blur-sm"
-      style={{ borderColor: active ? 'rgb(16 185 129 / 0.35)' : 'rgb(245 158 11 / 0.35)' }}
+      className={[
+        'relative overflow-hidden rounded-2xl border p-4 shadow-sm',
+        active
+          ? 'border-emerald-500/40 bg-gradient-to-br from-emerald-50 via-white to-white dark:border-emerald-500/35 dark:from-emerald-500/10 dark:via-[var(--card)] dark:to-[var(--card)] dark:shadow-none'
+          : 'border-amber-500/40 bg-gradient-to-br from-amber-50 via-white to-white dark:border-amber-500/35 dark:from-amber-500/10 dark:via-[var(--card)] dark:to-[var(--card)] dark:shadow-none',
+      ].join(' ')}
     >
-      {/* 缓慢流动的极光背景 */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
-          background: `radial-gradient(120% 140% at 12% 0%, ${color}26 0%, transparent 55%),
-                       radial-gradient(90% 120% at 85% 100%, ${color}1f 0%, transparent 60%)`,
-        }}
-        animate={{ backgroundPosition: ['0% 0%', '100% 60%', '0% 0%'] }}
-        transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-      />
+      <Glow color={color} />
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <div className="flex items-center gap-2">
-          <span className="relative flex size-2.5">
-            <motion.span
-              className="absolute inline-flex size-full rounded-full"
-              style={{ background: color }}
-              animate={{ scale: [1, 2.4, 1], opacity: [0.55, 0, 0.55] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
-            />
+      <div className="relative flex flex-wrap items-center gap-x-5 gap-y-3">
+        <div className="flex items-center gap-3">
+          <GlowOrb color={color} size={44} intensity={active ? 1 : 0.75} />
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-semibold text-[var(--foreground)]">
+              {active ? '正在推流' : '已接收画面'}
+            </span>
             <span
-              className="relative inline-flex size-2.5 rounded-full"
-              style={{ background: color }}
-            />
-          </span>
-          <span className="text-sm font-semibold text-[var(--color-fg)]">
-            {active ? '正在推流' : '已接收画面'}
-          </span>
-          <span
-            className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-            style={{ background: `${color}1f`, color }}
-          >
-            {active ? 'LIVE' : '仅本地'}
-          </span>
+              className="mt-1 w-fit rounded-full px-1.5 py-0.5 text-[10px] font-medium tracking-wide"
+              style={{ background: `${color}22`, color }}
+            >
+              {active ? 'LIVE' : '仅本地'}
+            </span>
+          </div>
         </div>
 
         <div className="min-w-0 flex-1">
@@ -113,9 +117,9 @@ export function LivePanel({ status }: { status: Status | null }) {
         </div>
 
         <div className="flex items-center gap-4 text-sm">
-          <div className="text-[var(--color-muted)]">
+          <div className="text-[var(--muted-foreground)]">
             时长{' '}
-            <span className="text-[var(--color-fg)]">
+            <span className="text-[var(--foreground)]">
               <Uptime seconds={status.uptimeSeconds} />
             </span>
           </div>
@@ -126,14 +130,8 @@ export function LivePanel({ status }: { status: Status | null }) {
                   key={item.platform}
                   className="rounded-full px-2 py-0.5 text-[11px]"
                   style={{
-                    color:
-                      item.platform === 'bilibili'
-                        ? 'var(--color-bilibili)'
-                        : 'var(--color-xiaohongshu)',
-                    background:
-                      item.platform === 'bilibili'
-                        ? 'color-mix(in srgb, var(--color-bilibili) 15%, transparent)'
-                        : 'color-mix(in srgb, var(--color-xiaohongshu) 15%, transparent)',
+                    color: item.platform === 'bilibili' ? 'var(--bilibili)' : 'var(--xiaohongshu)',
+                    background: `color-mix(in srgb, ${item.platform === 'bilibili' ? 'var(--bilibili)' : 'var(--xiaohongshu)'} 14%, transparent)`,
                   }}
                 >
                   {LABEL[item.platform]}
@@ -144,21 +142,10 @@ export function LivePanel({ status }: { status: Status | null }) {
         </div>
       </div>
 
-      {/* 底部流动光带 */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
-        }}
-        animate={{ x: ['-40%', '40%', '-40%'] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-      />
-
       {active ? null : (
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-[var(--color-border)] pt-3 text-[13px]">
+        <div className="relative mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-[var(--border)] pt-3 text-[13px]">
           <AlertTriangle size={14} style={{ color }} />
-          <span className="text-[var(--color-muted)]">{reason}，观众看不到</span>
+          <span className="text-[var(--muted-foreground)]">{reason}，观众看不到</span>
           <Link
             to="/settings"
             className="inline-flex items-center gap-0.5 font-medium"
@@ -169,6 +156,15 @@ export function LivePanel({ status }: { status: Status | null }) {
           </Link>
         </div>
       )}
+
+      {/* 底部流动光带：暗色下更明显 */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-40 dark:opacity-90"
+        style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
+        animate={{ x: ['-40%', '40%', '-40%'] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      />
     </motion.section>
   )
 }
