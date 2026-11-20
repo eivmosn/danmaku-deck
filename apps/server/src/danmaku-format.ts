@@ -14,7 +14,7 @@ export function describe(event: DanmakuEvent): string {
     case 'follow':
       return `${event.user} 关注了主播`
     case 'like':
-      return `${event.user} 分享了直播间`
+      return `${event.user} ${event.text}`
     default:
       return `${event.user}：${event.text}`
   }
@@ -34,7 +34,7 @@ export function describeBody(event: DanmakuEvent): string {
     case 'follow':
       return '关注了主播'
     case 'like':
-      return '分享了直播间'
+      return event.text
     default:
       return event.text
   }

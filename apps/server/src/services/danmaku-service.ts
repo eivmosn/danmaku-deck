@@ -27,7 +27,7 @@ export interface DanmakuServiceDeps {
   /** 便于测试替换，按平台创建客户端 */
   createClient?: (
     platform: Platform,
-    input: { cookie: string; roomId: string },
+    input: { cookie: string; roomId: string; uid?: number },
     onEvent: (event: DanmakuEvent) => void,
   ) => DanmakuClientPort
 }
@@ -137,10 +137,11 @@ export class DanmakuService {
       platform === 'xiaohongshu' ? (this.deps.accounts.secret('xiaohongshu')?.cookie ?? '') : cookie
 
     try {
+      const uid = Number(account.externalId) || 0
       const client =
         this.deps.createClient?.(platform, { cookie: xhsCookie, roomId }, (event) => {
           this.deps.bus.publish(event)
-        }) ?? this.buildClient(platform, { cookie: xhsCookie, roomId })
+        }) ?? this.buildClient(platform, { cookie: xhsCookie, roomId, uid })
 
       await client.connect()
       this.clients.set(platform, client)
@@ -153,13 +154,15 @@ export class DanmakuService {
 
   private buildClient(
     platform: Platform,
-    input: { cookie: string; roomId: string },
+    input: { cookie: string; roomId: string; uid?: number },
   ): DanmakuClientPort {
     if (platform === 'bilibili') {
       return new BilibiliDanmakuClient({
         roomId: input.roomId,
+        uid: input.uid,
         cookie: input.cookie,
         onEvent: (event) => this.deps.bus.publish(event),
+        onLog: (message) => this.deps.logs.write('info', 'B站', message),
         onState: (state, detail) => {
           if (state === 'online') this.deps.logs.write('info', 'B站', '弹幕已连接')
           if (state === 'closed') this.deps.logs.write('warn', 'B站', '弹幕连接已断开')

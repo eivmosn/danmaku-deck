@@ -68,6 +68,31 @@ describe('parseCommand', () => {
     }
   })
 
+  it('点赞取 LIKE_INFO_V3_CLICK 的 uname 与 like_text', () => {
+    const event = parseCommand(
+      {
+        cmd: 'LIKE_INFO_V3_CLICK',
+        data: { uname: '点赞的人', like_text: '为主播点赞了', click_count: 12 },
+      },
+      at,
+    )
+    expect(event).toEqual({
+      platform: 'bilibili',
+      kind: 'like',
+      user: '点赞的人',
+      text: '为主播点赞了',
+      count: 1,
+      at,
+    })
+  })
+
+  it('点赞缺 uname 返回 null；累计数 LIKE_INFO_V3_UPDATE 不当弹幕', () => {
+    expect(
+      parseCommand({ cmd: 'LIKE_INFO_V3_CLICK', data: { like_text: '点赞了' } }, at),
+    ).toBeNull()
+    expect(parseCommand({ cmd: 'LIKE_INFO_V3_UPDATE', data: { click_count: 30 } }, at)).toBeNull()
+  })
+
   it('缺用户名或未知命令返回 null', () => {
     expect(parseCommand({ cmd: 'DANMU_MSG', info: [[0], '文本', []] }, at)).toBeNull()
     expect(parseCommand({ cmd: 'ONLINE_RANK_COUNT', data: {} }, at)).toBeNull()
@@ -94,8 +119,13 @@ describe('数据包编解码', () => {
     expect(consumed).toBe(0)
   })
 
-  it('版本 3 的载荷是 brotli 压缩的 JSON 数组', () => {
-    const payload = brotliCompressSync(Buffer.from(JSON.stringify([{ cmd: 'A' }, { cmd: 'B' }])))
+  it('版本 3 的载荷解开后是一串数据包，要递归拆', () => {
+    // 真实抓包结构：外层 version=3 的包，brotli 解开后仍是若干带 16 字节头的包
+    const inner = Buffer.concat([
+      buildPacket(OP_MESSAGE, { cmd: 'A' }),
+      buildPacket(OP_MESSAGE, { cmd: 'B' }),
+    ])
+    const payload = brotliCompressSync(inner)
     const header = Buffer.alloc(16)
     header.writeUInt32BE(16 + payload.length, 0)
     header.writeUInt16BE(16, 4)
