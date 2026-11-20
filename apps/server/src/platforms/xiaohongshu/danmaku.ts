@@ -90,6 +90,19 @@ interface RawPushPayload {
     current_time?: number
     count?: number
     profile?: { nickname?: string; user_id?: string }
+    /** 进场/关注走这个 */
+    user_info?: { nick_name?: string; nickname?: string; id?: string }
+    /** 礼物走这个（下划线命名，与 profile 不是一套） */
+    send_user_info?: { nick_name?: string; id?: string }
+    receive_user_info?: { nick_name?: string; id?: string }
+    base_gift_info?: { id?: number; name?: string; coins?: number; icon?: string }
+    gift_action_info?: {
+      count?: number
+      comb_count?: number
+      gift_id?: number
+      gift_extra_info?: { gift_name?: string }
+    }
+    praise_info?: { count?: number }
     gift?: { name?: string; count?: number }
     gift_info?: { name?: string; count?: number }
   }
@@ -110,40 +123,80 @@ export function parseCatbusRawLine(line: string): DanmakuEvent | null {
   if (!custom || typeof custom !== 'object') return null
 
   const type = String(custom.type ?? '')
-  const user = custom.profile?.nickname ?? ''
+  const profileUser = custom.profile?.nickname ?? ''
+  // 礼物的用户字段是 send_user_info.nick_name（下划线），text/进场是 profile.nickname
+  const sendUser = custom.send_user_info?.nick_name ?? ''
+  const joinUser = custom.user_info?.nick_name ?? custom.user_info?.nickname ?? profileUser
   const stamp = payload.ts ?? custom.current_time
   const at = stamp ? new Date(stamp).toISOString() : new Date().toISOString()
 
   switch (type) {
     case 'text':
-      if (!user || !custom.desc) return null
-      return { platform: 'xiaohongshu', kind: 'chat', user, text: custom.desc, count: 0, at }
-    case 'gift_dock_and_effect':
-    case 'gift': {
-      // 礼物名/数量字段名没有实证：catbus 的 gift 分支从没真正命中过小红书的类型，
-      // 所以这里全部兜底，取不到时由 handleChunk 把原始报文打出来。
-      const name = String(custom.gift?.name ?? custom.gift_info?.name ?? custom.desc ?? '')
-      const count = Number(custom.gift?.count ?? custom.gift_info?.count ?? custom.count ?? 0)
+    case 'text_message':
+      if (!profileUser || !custom.desc) return null
       return {
         platform: 'xiaohongshu',
-        kind: 'gift',
-        user,
-        text: name || '礼物',
-        count: count > 0 ? count : 1,
+        kind: 'chat',
+        user: profileUser,
+        text: custom.desc,
+        count: 0,
         at,
       }
+    // 真实抓包：gift_dock_and_effect
+    //   send_user_info.nick_name        送礼人
+    //   base_gift_info.name / coins     礼物名 / 单价
+    //   gift_action_info.count          本次数量（comb_count 是连击累计）
+    case 'gift_dock_and_effect':
+    case 'gift': {
+      const user = sendUser || profileUser
+      const name =
+        custom.base_gift_info?.name ??
+        custom.gift_action_info?.gift_extra_info?.gift_name ??
+        custom.gift?.name ??
+        custom.gift_info?.name ??
+        custom.desc ??
+        ''
+      const count =
+        Number(
+          custom.gift_action_info?.count ?? custom.gift?.count ?? custom.gift_info?.count ?? 0,
+        ) || 1
+      if (!name) return null
+      return { platform: 'xiaohongshu', kind: 'gift', user, text: name, count, at }
     }
+    // 点赞家族：praise / like / combo_praise / light / like_comment / live_like / live_common_msg_action
     case 'praise':
+    case 'like':
+    case 'combo_praise':
     case 'light':
-      return { platform: 'xiaohongshu', kind: 'like', user, text: '点了赞', count: 1, at }
+    case 'like_comment':
+    case 'live_like':
+    case 'live_common_msg_action': {
+      const count = Number(custom.praise_info?.count ?? custom.count ?? 0) || 1
+      return { platform: 'xiaohongshu', kind: 'like', user: profileUser, text: '点了赞', count, at }
+    }
     case 'audience_join_v2':
+    case 'fansgroup_join_room_effect':
     case 'come':
     case 'enter':
     case 'enter_room':
-      return { platform: 'xiaohongshu', kind: 'enter', user, text: '进入了直播间', count: 1, at }
-    case 'follow':
+      return {
+        platform: 'xiaohongshu',
+        kind: 'enter',
+        user: joinUser,
+        text: '进入了直播间',
+        count: 1,
+        at,
+      }
     case 'follow_emcee':
-      return { platform: 'xiaohongshu', kind: 'follow', user, text: '关注了主播', count: 1, at }
+    case 'follow':
+      return {
+        platform: 'xiaohongshu',
+        kind: 'follow',
+        user: profileUser,
+        text: '关注了主播',
+        count: 1,
+        at,
+      }
     default:
       // viewer_heart / audience_num / letter_refresh 之类没有展示价值
       return null

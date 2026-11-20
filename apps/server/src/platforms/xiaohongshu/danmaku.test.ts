@@ -298,48 +298,61 @@ function rawEvent(customData: Record<string, unknown>): string {
 describe('小红书礼物与关注（真实类型名）', () => {
   // 类型名依据 DimSum Chat 文档列出的 xiaohongshu.* 消息族：
   //   text / gift_dock_and_effect / praise / audience_join_v2 / follow_emcee
-  it('gift_dock_and_effect 认成礼物，字段取 gift.name / gift.count', () => {
-    const event = parseCatbusRawLine(
-      rawEvent({
-        type: 'gift_dock_and_effect',
-        profile: { nickname: '送礼的' },
-        gift: { name: '音乐盒', count: 3 },
-      }),
-    )
+  /**
+   * 真实报文：webcast-mate 抓包样本 docs/samples/xhs-proto-capture.json 里
+   * gift_dock_and_effect 的 customData（只留相关字段）。
+   */
+  const realGift = {
+    type: 'gift_dock_and_effect',
+    current_time: 1786806861365,
+    room_info: { id: '570409528162863169', host_id: '64ccb022000000000e0241a5' },
+    send_user_info: { id: '649cddab0000000025035f4e', nick_name: '江南雨', role: 0 },
+    receive_user_info: { id: '64ccb022000000000e0241a5', nick_name: '活不腻来相亲', role: 0 },
+    base_gift_info: { id: '137925940106684781', name: '比心', type: 0, coins: 1 },
+    gift_action_info: {
+      gift_id: '137925940106684781',
+      count: 1,
+      comb_count: 4,
+      gift_extra_info: { gift_name: '比心' },
+    },
+  }
+
+  it('真实礼物报文：送礼人取 send_user_info.nick_name，礼物名取 base_gift_info.name', () => {
+    const event = parseCatbusRawLine(rawEvent(realGift))
     expect(event).toMatchObject({
       platform: 'xiaohongshu',
       kind: 'gift',
-      user: '送礼的',
-      text: '音乐盒',
-      count: 3,
+      user: '江南雨',
+      text: '比心',
+      count: 1,
     })
   })
 
-  it('字段写成 gift_info 也认，只有 desc 时至少不丢事件', () => {
-    const withInfo = parseCatbusRawLine(
-      rawEvent({
-        type: 'gift_dock_and_effect',
-        profile: { nickname: 'A' },
-        gift_info: { name: '小花花', count: 2 },
-      }),
-    )
-    expect(withInfo).toMatchObject({ kind: 'gift', text: '小花花', count: 2 })
-
-    const descOnly = parseCatbusRawLine(
-      rawEvent({ type: 'gift_dock_and_effect', profile: { nickname: 'B' }, desc: '棒棒糖' }),
-    )
-    expect(descOnly).toMatchObject({ kind: 'gift', text: '棒棒糖', count: 1 })
+  it('连击时取 gift_action_info.count，不取 comb_count', () => {
+    const combo = {
+      ...realGift,
+      gift_action_info: { ...realGift.gift_action_info, count: 3, comb_count: 12 },
+    }
+    expect(parseCatbusRawLine(rawEvent(combo))).toMatchObject({ count: 3 })
   })
 
-  it('完全认不出字段时仍然产出一条礼物事件，文案用兜底（会触发原始报文诊断日志）', () => {
-    const event = parseCatbusRawLine(
-      rawEvent({
-        type: 'gift_dock_and_effect',
-        profile: { nickname: 'C' },
-        payload: { weird: true },
-      }),
-    )
-    expect(event).toMatchObject({ kind: 'gift', user: 'C', text: '礼物', count: 1 })
+  it('礼物名缺失时返回 null（不产出无意义的礼物事件）', () => {
+    const broken = { type: 'gift_dock_and_effect', send_user_info: { nick_name: 'A' } }
+    expect(parseCatbusRawLine(rawEvent(broken))).toBeNull()
+  })
+
+  it('点赞家族取 praise_info.count', () => {
+    const praise = { type: 'praise', profile: { nickname: '点赞的' }, praise_info: { count: 7 } }
+    expect(parseCatbusRawLine(rawEvent(praise))).toMatchObject({
+      kind: 'like',
+      user: '点赞的',
+      count: 7,
+    })
+  })
+
+  it('fansgroup_join_room_effect 也是进场', () => {
+    const fans = { type: 'fansgroup_join_room_effect', user_info: { nick_name: '粉丝团' } }
+    expect(parseCatbusRawLine(rawEvent(fans))).toMatchObject({ kind: 'enter', user: '粉丝团' })
   })
 
   it('follow_emcee 认成关注', () => {
