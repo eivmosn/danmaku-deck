@@ -1,24 +1,39 @@
-import { Activity, Clock, Radio, Waypoints } from 'lucide-react'
-import { LiveNotice } from '@/components/live-notice'
-import { PlatformCard } from '@/components/platform-card'
-import { StatCard } from '@/components/stat-card'
-import { DanmakuList } from '@/components/danmaku-list'
-import { LogList } from '@/components/log-list'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
 import { Link } from 'react-router'
+import { LoginRequiredDialog } from '@/components/login-required-dialog'
+import type { Platform } from '@ps5lb/shared'
+import { LivePanel } from '@/components/live-panel'
+import { PlatformCard } from '@/components/platform-card'
+import { DanmakuList } from '@/components/danmaku-list'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLiveStore } from '@/stores/live'
 import { formatUptime, STATE_TEXT } from '@/lib/format'
 
 export function DashboardPage() {
-  const { status, danmaku, logs, toggle } = useLiveStore()
+  const { status, danmaku, toggle } = useLiveStore()
   const live = status?.state === 'live'
+  const [needLogin, setNeedLogin] = useState<Platform | null>(null)
+
+  const onToggle = (platform: Platform, enabled: boolean): void => {
+    const account = status?.platforms.find((item) => item.platform === platform)?.accountName
+    // 没登录就开推送 → 先引导登录，别让开关假装生效
+    if (enabled && !account) {
+      setNeedLogin(platform)
+      return
+    }
+    void toggle(platform, enabled)
+  }
 
   return (
     <div className="flex flex-col gap-5">
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">概览</h1>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">PS5 推流进来到分发的全链路状态</p>
+          <p className="mt-1 text-sm text-[var(--color-muted)]">
+            {live
+              ? `本场已播 ${formatUptime(status?.uptimeSeconds ?? 0)}`
+              : 'PS5 一旦开始直播，这里会实时显示状态'}
+          </p>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-xs ${
@@ -31,75 +46,41 @@ export function DashboardPage() {
         </span>
       </header>
 
-      <LiveNotice status={status} />
-
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          label="状态"
-          value={STATE_TEXT[status?.state ?? 'idle'] ?? '—'}
-          icon={Radio}
-          accent={live ? '#34d399' : undefined}
-        />
-        <StatCard
-          label="已直播"
-          value={formatUptime(status?.uptimeSeconds ?? 0)}
-          hint="本场时长"
-          icon={Clock}
-        />
-        <StatCard
-          label="收流路径"
-          value={status?.streamPath ?? '—'}
-          hint="PS5 推流标识"
-          icon={Waypoints}
-        />
-        <StatCard
-          label="今日事件"
-          value={danmaku.length}
-          hint="弹幕 / 礼物 / 进场"
-          icon={Activity}
-          accent="var(--color-bilibili)"
-        />
-      </section>
+      <LivePanel status={status} />
 
       <section className="grid gap-3 md:grid-cols-2">
         <PlatformCard
           platform="bilibili"
           status={status?.platforms.find((item) => item.platform === 'bilibili')}
-          onToggle={(enabled) => void toggle('bilibili', enabled)}
+          onToggle={(enabled) => onToggle('bilibili', enabled)}
         />
         <PlatformCard
           platform="xiaohongshu"
           status={status?.platforms.find((item) => item.platform === 'xiaohongshu')}
-          onToggle={(enabled) => void toggle('xiaohongshu', enabled)}
+          onToggle={(enabled) => onToggle('xiaohongshu', enabled)}
         />
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">最新弹幕</CardTitle>
-            <span className="text-[11px] text-[var(--color-muted)]">{danmaku.length} 条</span>
-          </CardHeader>
-          <CardContent>
-            <DanmakuList items={danmaku.slice(-8)} className="max-h-64" empty="等 PS5 开播后出现" />
-          </CardContent>
-        </Card>
+      <Card className="flex min-h-0 flex-1 flex-col">
+        <CardHeader>
+          <CardTitle className="text-sm">观众弹幕</CardTitle>
+          <Link
+            to="/danmaku"
+            className="text-[11px] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+          >
+            查看全部
+          </Link>
+        </CardHeader>
+        <CardContent className="min-h-0 flex-1">
+          <DanmakuList
+            items={danmaku.slice(-12)}
+            className="max-h-[46vh]"
+            empty={live ? '还没有人说话' : '开播后，两边的弹幕都会汇到这里'}
+          />
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">实时日志</CardTitle>
-            <Link
-              to="/logs"
-              className="text-[11px] text-[var(--color-muted)] hover:text-[var(--color-fg)]"
-            >
-              全部
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <LogList entries={logs.slice(-10)} className="max-h-64" />
-          </CardContent>
-        </Card>
-      </section>
+      <LoginRequiredDialog platform={needLogin} onClose={() => setNeedLogin(null)} />
     </div>
   )
 }
