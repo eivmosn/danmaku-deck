@@ -12,6 +12,8 @@ import { registerHookRoutes } from '@/http/hooks'
 import { registerLogRoutes } from '@/http/logs'
 import { registerPlatformRoutes } from '@/http/platforms'
 import { registerPushRoutes } from '@/http/push'
+import { registerXiaohongshuRoutes } from '@/http/xiaohongshu'
+import { XiaohongshuApi } from '@/platforms/xiaohongshu/api'
 import { PushTargetsStore } from '@/push/targets-store'
 import { registerStatusRoutes } from '@/http/status'
 import { createLogger, LogService } from '@/logger'
@@ -27,6 +29,7 @@ export interface BuildAppOptions {
   accounts?: AccountsStore
   bilibiliAuth?: BilibiliAuthPort
   pushTargets?: PushTargetsStore
+  xiaohongshu?: XiaohongshuApi
 }
 
 /** 组装 Fastify 实例，便于测试注入 */
@@ -46,6 +49,13 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerPlatformRoutes(app, orchestrator)
   registerAccountRoutes(app, accounts, orchestrator, logs)
   registerPushRoutes(app, pushTargets, logs)
+  registerXiaohongshuRoutes(app, {
+    api: options.xiaohongshu ?? new XiaohongshuApi(),
+    accounts,
+    pushTargets,
+    orchestrator,
+    logs,
+  })
 
   if (options.webDir && existsSync(join(options.webDir, 'index.html'))) {
     void app.register(fastifyStatic, { root: options.webDir })

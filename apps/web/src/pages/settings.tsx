@@ -1,5 +1,6 @@
 import { BilibiliLogin } from '@/components/bilibili-login'
 import { PushTargets } from '@/components/push-targets'
+import { XiaohongshuLogin } from '@/components/xiaohongshu-login'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLiveStore } from '@/stores/live'
@@ -15,6 +16,7 @@ export function SettingsPage() {
   const serverUrl = useLiveStore((state) => state.serverUrl)
   const status = useLiveStore((state) => state.status)
   const bilibili = status?.platforms.find((item) => item.platform === 'bilibili')
+  const xiaohongshu = status?.platforms.find((item) => item.platform === 'xiaohongshu')
   const logout = useLiveStore((state) => state.logout)
 
   return (
@@ -50,6 +52,28 @@ export function SettingsPage() {
             <span className="text-xs text-[var(--color-muted)]">还没有登录</span>
           )}
           <BilibiliLogin loggedIn={Boolean(bilibili?.accountName)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">小红书账号</CardTitle>
+          <span className="text-[11px] text-[var(--color-muted)]">
+            {xiaohongshu?.accountName ?? '未登录'}
+          </span>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {xiaohongshu?.accountName ? (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[var(--color-fg)]">{xiaohongshu.accountName}</span>
+              <Button variant="ghost" size="sm" onClick={() => void logout('xiaohongshu')}>
+                退出登录
+              </Button>
+            </div>
+          ) : (
+            <span className="text-xs text-[var(--color-muted)]">还没有登录</span>
+          )}
+          <XiaohongshuLogin loggedIn={Boolean(xiaohongshu?.accountName)} />
         </CardContent>
       </Card>
 
