@@ -97,12 +97,22 @@ ${text}`)
     .filter((path, index, list) => list.indexOf(path) === index)
     .slice(0, 3)
 
+  // 顺带把同名测试文件也取上：改代码必须同时看到测试
+  const wanted = []
   for (const path of mentioned) {
+    wanted.push(path)
+    if (path.endsWith('.ts') && !path.endsWith('.test.ts')) {
+      wanted.push(path.replace(/\.ts$/, '.test.ts'))
+    }
+  }
+
+  for (const path of wanted.slice(0, 6)) {
     // 文件不多，顺序取足够；并发去拉会让后面的接口调用更难读懂
     // eslint-disable-next-line no-await-in-loop
     const file = await ghApi(`/repos/${REPO}/contents/${path}`).catch(() => null)
     if (!file?.content) continue
-    const text = Buffer.from(file.content, 'base64').toString('utf8').slice(0, 8000)
+    // tar 目录会返回数组，没有 content 字段，上面已经过滤掉
+    const text = Buffer.from(file.content, 'base64').toString('utf8').slice(0, 20_000)
     parts.push(`### 文件 ${path}\n\`\`\`\n${text}\n\`\`\``)
   }
 
@@ -142,12 +152,16 @@ ${TRIGGER_TEXT.slice(0, 2000)}
   "actions": [
     { "type": "create_issue", "title": "...", "body": "..." },
     { "type": "create_pr", "title": "...", "branch": "ai/xxx", "body": "...",
-      "files": [ { "path": "相对路径", "content": "文件完整内容" } ] }
+      "patch": "git diff 格式的 unified diff（推荐）",
+      "files": [ { "path": "相对路径", "content": "文件完整内容（仅当 patch 不适用时）" } ] }
   ]
 }
 
 硬性约束：
-- files 最多 ${MAX_FILES} 个，每个不超过 ${MAX_BYTES} 字节，路径不许以 ${BLOCKED_PREFIX} 开头
+- 改代码优先用 patch（unified diff），它比整文件替换可靠：只写改动的片段，不要重写整个文件
+- patch 必须是标准 git diff：以 diff --git a/... b/... 开头，含 ---/+++ 与 @@ 行号
+- 用 files 模式时最多 ${MAX_FILES} 个、每个不超过 ${MAX_BYTES} 字节
+- 路径一律不许以 ${BLOCKED_PREFIX} 开头
 - 不许输出删除文件、合并、关闭这类动作
 - 信息不足时 actions 留空数组，只在 reply 里说明缺什么`
 
@@ -194,7 +208,39 @@ async function createIssue(action) {
   return created.html_url
 }
 
+/**
+ * 两种模式：
+ *   patch → 在 workflow 的 checkout 里 git apply，再提交推送（改动小、可靠）
+ *   files → 走 git tree API 整文件替换（改动大但模型要写出完整文件）
+ */
 async function createPullRequest(action) {
+  const branch = (action.branch ?? `ai/issue-${ISSUE_NUMBER}`).replace(/[^\w./-]/g, '-')
+  const title = action.title ?? `AI 修复 #${ISSUE_NUMBER}`
+  const body = `${action.body ?? ''}\n\n---\nDeepSeek 助手根据 #${ISSUE_NUMBER} 生成，**未经验证，请审查后再合并**。`
+
+  if (typeof action.patch === 'string' && action.patch.includes('@@')) {
+    const { execSync } = await import('node:child_process')
+    const { writeFileSync } = await import('node:fs')
+    const path = `/tmp/ai-${ISSUE_NUMBER}.patch`
+    writeFileSync(path, action.patch.endsWith('\n') ? action.patch : `${action.patch}\n`)
+
+    execSync(`git checkout -B ${branch}`, { stdio: 'inherit' })
+    execSync(`git apply --index --whitespace=nowarn ${path}`, { stdio: 'inherit' })
+    execSync(
+      'git -c user.name="deepseek-agent" -c user.email="actions@github.com" commit -m ' +
+        JSON.stringify(`${title}\n\nDeepSeek 助手根据 #${ISSUE_NUMBER} 生成`),
+      { stdio: 'inherit' },
+    )
+    execSync(`git push --force origin ${branch}`, { stdio: 'inherit' })
+
+    const pr = await ghApi(`/repos/${REPO}/pulls`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, head: branch, base: repo.default_branch, body }),
+    })
+    return pr.html_url
+  }
+
   const files = (action.files ?? [])
     .filter((file) => typeof file?.path === 'string' && typeof file?.content === 'string')
     .filter((file) => !file.path.startsWith(BLOCKED_PREFIX))
@@ -203,7 +249,6 @@ async function createPullRequest(action) {
 
   if (files.length === 0) return null
 
-  const branch = (action.branch ?? `ai/issue-${ISSUE_NUMBER}`).replace(/[^\w./-]/g, '-')
   const baseSha = (await ghApi(`/repos/${REPO}/git/ref/heads/${repo.default_branch}`)).object.sha
   const baseCommit = await ghApi(`/repos/${REPO}/git/commits/${baseSha}`)
 
@@ -231,7 +276,7 @@ async function createPullRequest(action) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      message: `${action.title ?? `AI 修复 #${ISSUE_NUMBER}`}\n\nDeepSeek 助手根据 #${ISSUE_NUMBER} 生成`,
+      message: `${title}\n\nDeepSeek 助手根据 #${ISSUE_NUMBER} 生成`,
       tree: tree.sha,
       parents: [baseSha],
     }),
@@ -246,12 +291,7 @@ async function createPullRequest(action) {
   const pr = await ghApi(`/repos/${REPO}/pulls`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title: action.title ?? `AI 修复 #${ISSUE_NUMBER}`,
-      head: branch,
-      base: repo.default_branch,
-      body: `${action.body ?? ''}\n\n---\nDeepSeek 助手根据 #${ISSUE_NUMBER} 生成，**未经验证，请审查后再合并**。`,
-    }),
+    body: JSON.stringify({ title, head: branch, base: repo.default_branch, body }),
   })
   return pr.html_url
 }
