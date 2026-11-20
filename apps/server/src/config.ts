@@ -11,6 +11,8 @@ export const configSchema = z.object({
   rtmpPort: z.coerce.number().int().positive().default(1935),
   /** DNS 劫持端口；53 需要 root，调试可用 5353 */
   dnsPort: z.coerce.number().int().positive().default(53),
+  /** DNS 绑定地址：NAS 上自带 dnsmasq 占了 0.0.0.0:53，绑具体网卡 IP 才不冲突 */
+  dnsHost: z.string().default('0.0.0.0'),
   /** 被劫持的域名指向哪个 IP（一般是 NAS 自己） */
   dnsHijackIp: z.string().default('127.0.0.1'),
   /** 关闭内置 DNS（比如继续用 dnsmasq） */
@@ -36,6 +38,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     ircPort: env.PS5LB_IRC_PORT,
     rtmpPort: env.PS5LB_RTMP_PORT,
     dnsPort: env.PS5LB_DNS_PORT,
+    dnsHost: env.PS5LB_DNS_HOST,
     dnsHijackIp: env.PS5LB_DNS_IP,
     dnsEnabled: env.PS5LB_DNS_ENABLED,
     relayEnabled: env.PS5LB_RELAY_ENABLED,

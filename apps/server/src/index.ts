@@ -112,6 +112,7 @@ let dns: DnsServer | null = null
 if (config.dnsEnabled) {
   dns = new DnsServer({
     port: config.dnsPort,
+    address: config.dnsHost,
     hijackDomains: ['twitch.tv', 'live-video.net'],
     hijackIp: config.dnsHijackIp,
   })

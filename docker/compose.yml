@@ -8,6 +8,9 @@ services:
     container_name: ps5lb-server
     restart: unless-stopped
     network_mode: host
+    # host 模式下端口映射不生效，但绿联等 NAS 靠 ports 字段识别【快捷访问】入口
+    ports:
+      - '8787:8787'
     volumes:
       - ./data:/app/.ps5lb
       - ./logs:/app/logs

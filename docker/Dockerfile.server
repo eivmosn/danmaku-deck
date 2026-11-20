@@ -1,24 +1,22 @@
-FROM docker.1panel.live/library/node:22-alpine AS build
-WORKDIR /src
-RUN npm config set registry https://registry.npmmirror.com
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/server/package.json apps/server/
-COPY apps/web/package.json apps/web/
-COPY packages/shared/package.json packages/shared/
-RUN npm i -g pnpm@10 && pnpm install --frozen-lockfile
+# 镜像里不做构建：产物在本地打好（规避 QEMU 交叉编译下 esbuild/rust 的崩溃）
+#   pnpm --filter @ps5lb/server bundle
+#   pnpm --filter @ps5lb/web build
+FROM node:22-alpine
 
-COPY . .
-RUN pnpm build
-
-FROM docker.1panel.live/library/node:22-alpine
-WORKDIR /app
-ENV NODE_ENV=production
-RUN apk add --no-cache ffmpeg \
+# 国内环境：apk 走阿里云镜像，npm 走 npmmirror
+RUN sed -i 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories \
+    && apk add --no-cache ffmpeg \
     && npm config set registry https://registry.npmmirror.com \
     && npm i -g catbus-cli --no-fund --no-audit
-COPY --from=build /src/apps/server/dist ./dist
-COPY --from=build /src/apps/web/dist ./apps/web/dist
-COPY --from=build /src/node_modules ./node_modules
-COPY --from=build /src/apps/server/node_modules ./apps/server/node_modules
-EXPOSE 8787 6667
-CMD ["node", "dist/index.js"]
+
+WORKDIR /app
+COPY apps/server/dist-bundle/index.mjs ./server.mjs
+COPY apps/web/dist ./web
+
+ENV NODE_ENV=production \
+    PS5LB_WEB_DIR=/app/web \
+    PS5LB_LOG_DIR=/app/logs
+
+EXPOSE 8787 6667 18443
+VOLUME ["/app/.ps5lb", "/app/logs"]
+CMD ["node", "server.mjs"]
