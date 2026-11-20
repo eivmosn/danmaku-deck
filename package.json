@@ -11,7 +11,8 @@
     "typecheck": "pnpm -r typecheck",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm format:check && pnpm build",
     "format": "oxfmt .",
-    "format:check": "oxfmt --check ."
+    "format:check": "oxfmt --check .",
+    "start": "pnpm --filter @ps5lb/server start"
   },
   "devDependencies": {
     "nano-staged": "^1.0.2",
