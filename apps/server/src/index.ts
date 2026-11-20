@@ -1,8 +1,16 @@
 import { buildApp } from './app.js'
+import { printBanner } from './banner.js'
 import { loadConfig } from './config.js'
 
 const config = loadConfig()
 const app = buildApp({ logger: config.logLevel !== 'fatal' })
+
+await printBanner({
+  version: process.env.PS5LB_VERSION ?? '0.0.1',
+  host: config.host,
+  port: config.port,
+  mode: process.env.NODE_ENV ?? 'development',
+})
 
 await app.listen({ host: config.host, port: config.port })
 
