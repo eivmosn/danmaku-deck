@@ -35,7 +35,7 @@ bus.subscribe((event) => {
   logs.write(levelFor(event), scope, describe(event), { kind: event.kind, user: event.user })
 })
 
-const danmaku = new DanmakuService({ orchestrator, accounts, bus, logs })
+const danmaku = new DanmakuService({ orchestrator, accounts, pushTargets, bus, logs })
 danmaku.start()
 
 const bilibiliLive = new BilibiliLive()

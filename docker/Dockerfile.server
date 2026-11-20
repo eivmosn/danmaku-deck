@@ -13,7 +13,9 @@ RUN pnpm build
 FROM docker.1panel.live/library/node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg \
+    && npm config set registry https://registry.npmmirror.com \
+    && npm i -g catbus-cli --no-fund --no-audit
 COPY --from=build /src/apps/server/dist ./dist
 COPY --from=build /src/apps/web/dist ./apps/web/dist
 COPY --from=build /src/node_modules ./node_modules
