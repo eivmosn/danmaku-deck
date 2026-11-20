@@ -34,13 +34,13 @@ async function captureClientHello(servername: string): Promise<Buffer> {
 }
 
 let relay: SniRelay | null = null
-let target: Server | null = null
+let sharedTarget: Server | null = null
 
 afterEach(async () => {
   await relay?.close()
   relay = null
-  target?.close()
-  target = null
+  sharedTarget?.close()
+  sharedTarget = null
 })
 
 describe('parseClientHello', () => {
@@ -109,8 +109,10 @@ describe('socks5Connect', () => {
 
 describe('SniRelay', () => {
   it('按 SNI 判定路由：twitch 域名走代理、其他直连', async () => {
-    target = createServer((socket) => socket.on('data', (chunk: Buffer) => socket.write(chunk)))
-    await new Promise<void>((resolve) => target?.listen(0, '127.0.0.1', () => resolve()))
+    sharedTarget = createServer((socket) =>
+      socket.on('data', (chunk: Buffer) => socket.write(chunk)),
+    )
+    await new Promise<void>((resolve) => sharedTarget?.listen(0, '127.0.0.1', () => resolve()))
 
     const routes: Array<{ host: string; viaProxy: boolean }> = []
     relay = new SniRelay({
@@ -168,7 +170,9 @@ describe('SniRelay 经代理转发', () => {
       fallbackDirect: false,
     })
     await relay.listen()
-    const relayPort = ((relay as unknown as { server: Server }).server.address() as { port: number }).port
+    const relayPort = (
+      (relay as unknown as { server: Server }).server.address() as { port: number }
+    ).port
 
     const hello = await captureClientHello('www.twitch.tv')
     const client = connect(relayPort, '127.0.0.1')
