@@ -89,8 +89,9 @@ export function XhsCodeDialog({ open, onClose, onDone }: XhsCodeDialogProps) {
             placeholder="6 位开播码"
             inputMode="numeric"
             autoFocus
-            // coss 的 Input 把 className 挂在外层 span 上，样式要穿透到里面的 input
-            className="h-10 [&_input]:text-center [&_input]:font-mono [&_input]:text-lg [&_input]:tracking-[0.4em]"
+            // coss 的 Input 把 className 挂在外层 span 上，样式要穿透到里面的 input。
+            // 内层默认 leading-8.5 套在 h-10 里会让文字贴顶，这里把行高拉满做垂直居中，左对齐。
+            className="h-10 [&_input]:h-10 [&_input]:leading-10 [&_input]:text-left [&_input]:font-mono"
           />
 
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
