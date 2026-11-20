@@ -10,9 +10,15 @@ const paramsSchema = z.object({
 
 export function registerAccountRoutes(app: FastifyInstance, store: AccountsStore): void {
   app.get('/api/accounts', async () => {
+    const activeIds = new Set([store.active('bilibili')?.id, store.active('xiaohongshu')?.id])
     const accounts = store.list().map((account) => ({
-      ...account,
-      active: store.active(account.platform)?.id === account.id,
+      id: account.id,
+      platform: account.platform,
+      displayName: account.displayName,
+      externalId: account.externalId,
+      createdAt: account.createdAt,
+      lastUsedAt: account.lastUsedAt ?? null,
+      active: activeIds.has(account.id),
     }))
     return { ok: true, accounts }
   })
