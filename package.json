@@ -2,10 +2,6 @@
   "name": "ps5-live-bridge",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.34.5",
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
@@ -13,12 +9,14 @@
     "lint:fix": "oxlint . --fix",
     "test": "vitest run",
     "typecheck": "pnpm -r typecheck",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm format:check && pnpm build",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check ."
   },
   "devDependencies": {
     "nano-staged": "^1.0.2",
+    "oxfmt": "^0.79.0",
     "oxlint": "^1.94.0",
-    "prettier": "^3.10.1",
     "simple-git-hooks": "^2.14.0",
     "typescript": "^5.9.0",
     "vitest": "^5.1.1"
@@ -27,9 +25,13 @@
     "pre-commit": "pnpm nano-staged"
   },
   "nano-staged": {
-    "*.{ts,tsx,js,jsx}": "oxlint --fix",
-    "*.{json,md,yml,yaml}": "prettier --write"
+    "*.{ts,tsx,js,jsx}": "oxlint --fix && oxfmt",
+    "*.{json,md,yml,yaml}": "oxfmt"
   },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.34.5",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",

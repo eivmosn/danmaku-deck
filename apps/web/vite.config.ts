@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@ps5lb/shared': fileURLToPath(
-        new URL('../../packages/shared/src/index.ts', import.meta.url)
+        new URL('../../packages/shared/src/index.ts', import.meta.url),
       ),
     },
   },

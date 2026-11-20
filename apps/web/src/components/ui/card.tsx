@@ -7,7 +7,7 @@ export function Card({ className, ...props }: ComponentProps<'section'>) {
       className={cn(
         'rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-5',
         'backdrop-blur-sm',
-        className
+        className,
       )}
       {...props}
     />

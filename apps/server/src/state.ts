@@ -33,7 +33,7 @@ export class LiveStateStore {
 
   setPlatform(
     platform: Platform,
-    patch: Partial<Omit<PlatformStatus, 'platform'>>
+    patch: Partial<Omit<PlatformStatus, 'platform'>>,
   ): PlatformStatus {
     const current = this.platforms.get(platform)
     if (!current) throw new Error(`未知平台：${platform}`)

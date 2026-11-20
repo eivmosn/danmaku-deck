@@ -30,6 +30,7 @@ pnpm check        # lint + typecheck + test + build
 pnpm --filter @ps5lb/server dev
 pnpm --filter @ps5lb/web dev
 pnpm test
+pnpm format       # oxfmt 格式化
 ```
 
 ## 接口
@@ -44,7 +45,7 @@ pnpm test
 - TypeScript 严格模式，`noUncheckedIndexedAccess` 打开
 - 服务端 ESM（NodeNext），相对导入必须带 `.js`
 - 前端组件放 `apps/web/src/components/ui/`，采用 coss 的「源码自有」方式，不引入黑盒组件库
-- 提交前自动跑 oxlint + nano-staged
+- 提交前由 simple-git-hooks + nano-staged 自动跑 oxlint + oxfmt（只处理暂存文件）
 
 ## 许可
 

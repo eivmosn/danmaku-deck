@@ -131,8 +131,8 @@ interface Account {
 - 组件：`coss.com/ui` 风格（基于 Base UI），源码自有、可改
 - 状态：**Zustand**
 - 样式：**Tailwind CSS v4**（coss 的组件依赖 Tailwind，不用 UnoCSS）
-- 质量：**oxlint** + **vitest** + `tsc --noEmit`
-- 提交钩子：**simple-git-hooks** + **nano-staged**（只检查暂存文件）
+- 质量：**oxlint** + **oxfmt** + **vitest** + `tsc --noEmit`
+- 提交钩子：**simple-git-hooks** + **nano-staged**（只检查暂存文件，跑 oxlint + oxfmt）
 - 打包：`vite build`，产物由 server 静态托管
 
 ### 4.2 App（iOS，保留）
