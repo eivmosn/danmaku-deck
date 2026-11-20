@@ -31,11 +31,13 @@ async function gh(path, init = {}) {
       Authorization: `Bearer ${TOKEN}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      ...(init.headers ?? {}),
+      ...init.headers,
     },
   })
   if (!response.ok) {
-    throw new Error(`${init.method ?? 'GET'} ${path} 失败：${response.status} ${await response.text()}`)
+    throw new Error(
+      `${init.method ?? 'GET'} ${path} 失败：${response.status} ${await response.text()}`,
+    )
   }
   return response.status === 204 ? null : response.json()
 }
@@ -95,7 +97,7 @@ ${diff}
 2. 每条问题给出：文件与大致位置、问题、为什么是问题、建议怎么改。
 3. 重点看：逻辑错误、边界条件、并发/资源泄漏、错误处理、与真实协议或外部接口是否一致、测试是否真的覆盖了断言的东西。
 4. 如果某处是根据推断而非证据写的（比如猜外部接口的字段），明确指出并要求给出依据。
-5. 最后给一个结论：`通过` / `需要修改`，并说明理由。
+5. 最后给一个结论：「通过」或「需要修改」，并说明理由。
 6. 输出用 Markdown，控制在 800 字以内，不要复述 diff。`
 
 const response = await fetch(`${BASE}/chat/completions`, {
@@ -115,7 +117,9 @@ const response = await fetch(`${BASE}/chat/completions`, {
 })
 
 if (!response.ok) {
-  await comment(`${MARKER}\n### 🤖 DeepSeek 审查失败\n\n\`\`\`\n${response.status} ${await response.text()}\n\`\`\``)
+  await comment(
+    `${MARKER}\n### 🤖 DeepSeek 审查失败\n\n\`\`\`\n${response.status} ${await response.text()}\n\`\`\``,
+  )
   process.exit(0)
 }
 
@@ -123,5 +127,7 @@ const data = await response.json()
 const review = data.choices?.[0]?.message?.content?.trim() || '（模型没有返回内容）'
 const note = truncated ? '\n\n> 注：diff 过长，只审了前面一部分。' : ''
 
-await comment(`${MARKER}\n### 🤖 DeepSeek 审查\n\n${review}${note}\n\n<sub>由 DeepSeek (${MODEL}) 自动生成</sub>`)
+await comment(
+  `${MARKER}\n### 🤖 DeepSeek 审查\n\n${review}${note}\n\n<sub>由 DeepSeek (${MODEL}) 自动生成</sub>`,
+)
 console.log('审查已发布')
