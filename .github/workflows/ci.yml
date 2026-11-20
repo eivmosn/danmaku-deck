@@ -26,7 +26,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # 镜像里不做构建（产物在本地打好），所以这里必须先产出 dist-bundle 与 web/dist，
+      # 否则 Dockerfile 的 COPY 找不到文件，构建直接失败
+      - name: 打包服务端与前端
+        run: |
+          pnpm --filter @danmaku-deck/server bundle
+          pnpm --filter @danmaku-deck/web build
       - name: 构建服务端镜像
         uses: docker/build-push-action@v6
         with:

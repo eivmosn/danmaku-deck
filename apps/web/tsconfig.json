@@ -7,7 +7,8 @@
     "noEmit": true,
     "allowImportingTsExtensions": false,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@danmaku-deck/shared": ["../../packages/shared/src/index.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

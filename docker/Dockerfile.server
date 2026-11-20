@@ -1,6 +1,7 @@
 # 镜像里不做构建：产物在本地打好（规避 QEMU 交叉编译下 esbuild/rust 的崩溃）
-#   pnpm --filter @ps5lb/server bundle
-#   pnpm --filter @ps5lb/web build
+# 构建前必须先产出这两个目录，否则下面的 COPY 会失败：
+#   pnpm --filter @danmaku-deck/server bundle   → apps/server/dist-bundle/index.mjs
+#   pnpm --filter @danmaku-deck/web build       → apps/web/dist
 FROM node:22-alpine
 
 # 国内环境：apk 走阿里云镜像，npm 走 npmmirror
