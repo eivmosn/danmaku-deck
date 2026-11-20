@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { LoginRequiredDialog } from '@/components/login-required-dialog'
+import { XhsCodeDialog } from '@/components/xhs-code-dialog'
 import type { Platform } from '@danmaku-deck/shared'
 import { LivePanel } from '@/components/live-panel'
 import { PlatformCard } from '@/components/platform-card'
@@ -15,6 +16,7 @@ export function DashboardPage() {
   const elapsed = useElapsedSeconds(status?.uptimeSeconds ?? 0)
   const live = status?.state === 'live'
   const [needLogin, setNeedLogin] = useState<Platform | null>(null)
+  const [askCode, setAskCode] = useState(false)
 
   const onToggle = (platform: Platform, enabled: boolean): void => {
     const account = status?.platforms.find((item) => item.platform === platform)?.accountName
@@ -22,6 +24,11 @@ export function DashboardPage() {
     if (enabled && !account) {
       requestEnable(platform)
       setNeedLogin(platform)
+      return
+    }
+    // 小红书每场都要新的开播码，忘记兑换就会推到过期地址，所以每次开开关都先要码
+    if (enabled && platform === 'xiaohongshu') {
+      setAskCode(true)
       return
     }
     void toggle(platform, enabled)
@@ -82,6 +89,11 @@ export function DashboardPage() {
       </Card>
 
       <LoginRequiredDialog platform={needLogin} onClose={() => setNeedLogin(null)} />
+      <XhsCodeDialog
+        open={askCode}
+        onClose={() => setAskCode(false)}
+        onDone={() => void toggle('xiaohongshu', true)}
+      />
     </div>
   )
 }
