@@ -9,8 +9,15 @@ import { LogsPage } from '@/pages/logs'
 import { SettingsPage } from '@/pages/settings'
 import { useLiveStore } from '@/stores/live'
 
+const PAGES: PageKey[] = ['dashboard', 'danmaku', 'logs', 'settings']
+
+function initialPage(): PageKey {
+  const value = new URLSearchParams(window.location.search).get('page')
+  return PAGES.find((item) => item === value) ?? 'dashboard'
+}
+
 export function App() {
-  const [page, setPage] = useState<PageKey>('dashboard')
+  const [page, setPage] = useState<PageKey>(initialPage)
   const { status, refresh, applyStatus, pushDanmaku, pushLog } = useLiveStore()
 
   // 首屏拉一次，之后靠 SSE

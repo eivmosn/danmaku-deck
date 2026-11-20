@@ -1,3 +1,4 @@
+import { Activity, Clock, Radio, Waypoints } from 'lucide-react'
 import { PlatformCard } from '@/components/platform-card'
 import { StatCard } from '@/components/stat-card'
 import { DanmakuList } from '@/components/danmaku-list'
@@ -15,12 +16,14 @@ export function DashboardPage({ onOpenLogs }: { onOpenLogs: () => void }) {
     <div className="flex flex-col gap-5">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">概览</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">概览</h1>
           <p className="mt-1 text-sm text-[var(--color-muted)]">PS5 推流进来到分发的全链路状态</p>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-xs ${
-            live ? 'bg-emerald-400/15 text-emerald-300' : 'bg-white/8 text-white/60'
+            live
+              ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-300'
+              : 'bg-[var(--color-elevated)] text-[var(--color-muted)]'
           }`}
         >
           {STATE_TEXT[status?.state ?? 'idle'] ?? '未知'}
@@ -28,13 +31,24 @@ export function DashboardPage({ onOpenLogs }: { onOpenLogs: () => void }) {
       </header>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="状态" value={STATE_TEXT[status?.state ?? 'idle'] ?? '—'} />
-        <StatCard label="已直播" value={formatUptime(status?.uptimeSeconds ?? 0)} hint="本场时长" />
-        <StatCard label="收流路径" value={status?.streamPath ?? '—'} hint="PS5 推流标识" />
+        <StatCard
+          label="状态"
+          value={STATE_TEXT[status?.state ?? 'idle'] ?? '—'}
+          icon={Radio}
+          accent={live ? '#34d399' : undefined}
+        />
+        <StatCard
+          label="已直播"
+          value={formatUptime(status?.uptimeSeconds ?? 0)}
+          hint="本场时长"
+          icon={Clock}
+        />
+        <StatCard label="收流路径" value={status?.streamPath ?? '—'} hint="PS5 推流标识" icon={Waypoints} />
         <StatCard
           label="今日事件"
           value={danmaku.length}
           hint="弹幕 / 礼物 / 进场"
+          icon={Activity}
           accent="var(--color-bilibili)"
         />
       </section>

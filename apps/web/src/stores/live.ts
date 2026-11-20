@@ -39,6 +39,11 @@ export const useLiveStore = create<LiveStore>((set, get) => ({
     try {
       const status = await fetchStatus()
       set({ status, error: null })
+      const response = await fetch('/api/events/danmaku/recent?limit=200')
+      if (response.ok) {
+        const body = (await response.json()) as { events: DanmakuEvent[] }
+        set({ danmaku: body.events })
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '未知错误' })
     }

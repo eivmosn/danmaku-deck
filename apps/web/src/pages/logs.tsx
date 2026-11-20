@@ -8,7 +8,7 @@ export function LogsPage() {
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col gap-4">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">日志</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">日志</h1>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
           中文实时日志，按平台分色；同时落盘到 logs/ 目录
         </p>

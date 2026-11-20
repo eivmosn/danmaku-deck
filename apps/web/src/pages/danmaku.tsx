@@ -21,12 +21,12 @@ export function DanmakuPage() {
     <div className="flex h-[calc(100vh-4rem)] flex-col gap-4">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">弹幕</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">弹幕</h1>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
             两个平台的弹幕、礼物、进场混在一条时间线上
           </p>
         </div>
-        <div className="flex gap-1 rounded-xl bg-white/5 p-1">
+        <div className="flex gap-1 rounded-xl bg-[var(--color-elevated)] p-1">
           {FILTERS.map((item) => (
             <button
               key={item.key}
@@ -35,8 +35,8 @@ export function DanmakuPage() {
               className={cn(
                 'rounded-lg px-3 py-1.5 text-xs transition-colors',
                 item.key === filter
-                  ? 'bg-white/12 text-white'
-                  : 'text-white/55 hover:text-white/80',
+                  ? 'bg-[var(--color-surface)] text-[var(--color-fg)] shadow-sm'
+                  : 'text-[var(--color-muted)] hover:text-[var(--color-fg)]',
               )}
             >
               {item.label}

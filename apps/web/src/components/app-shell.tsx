@@ -1,14 +1,30 @@
-import type { ReactNode } from 'react'
+import { useStorage } from '@eivmosn/utils'
+import {
+  LayoutDashboard,
+  MessagesSquare,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ScrollText,
+  Settings,
+  Sun,
+  type LucideIcon,
+} from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { PlayStationLogo } from '@/components/brand-logos'
 import { cn } from '@/lib/cn'
+import { useThemeStore } from '@/stores/theme'
 
 export type PageKey = 'dashboard' | 'danmaku' | 'logs' | 'settings'
 
-const NAV: Array<{ key: PageKey; label: string; hint: string; icon: string }> = [
-  { key: 'dashboard', label: '概览', hint: '实时状态', icon: '▦' },
-  { key: 'danmaku', label: '弹幕', hint: '两平台混排', icon: '◈' },
-  { key: 'logs', label: '日志', hint: '中文实时日志', icon: '≡' },
-  { key: 'settings', label: '设置', hint: '服务与账号', icon: '⚙' },
+const NAV: Array<{ key: PageKey; label: string; icon: LucideIcon }> = [
+  { key: 'dashboard', label: '概览', icon: LayoutDashboard },
+  { key: 'danmaku', label: '弹幕', icon: MessagesSquare },
+  { key: 'logs', label: '日志', icon: ScrollText },
+  { key: 'settings', label: '设置', icon: Settings },
 ]
+
+const storage = useStorage({ prefix: 'ps5lb.', type: 'localStorage' })
 
 interface AppShellProps {
   page: PageKey
@@ -17,74 +33,161 @@ interface AppShellProps {
   children: ReactNode
 }
 
-export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
+interface RailButtonProps {
+  icon: ReactNode
+  label: string
+  collapsed: boolean
+  active?: boolean
+  onClick: () => void
+}
+
+/** 收起时固定 40×40 居中，展开时整行左对齐 —— 两种状态各自对称 */
+function RailButton({ icon, label, collapsed, active, onClick }: RailButtonProps) {
   return (
-    <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col gap-1 border-r border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 md:flex">
-        <div className="mb-5 flex items-center gap-2 px-2">
-          <span className="inline-flex size-8 items-center justify-center rounded-xl bg-white text-sm font-bold text-black">
-            PS
+    <button
+      type="button"
+      title={label}
+      onClick={onClick}
+      className={cn(
+        'flex h-10 items-center rounded-xl transition-colors duration-200',
+        collapsed ? 'mx-auto w-10 justify-center' : 'w-full gap-3 px-3',
+        active
+          ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
+          : 'text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]'
+      )}
+    >
+      {icon}
+      {collapsed ? null : <span className="whitespace-nowrap text-sm font-medium">{label}</span>}
+    </button>
+  )
+}
+
+export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
+  const { mode, toggle: toggleTheme } = useThemeStore()
+  const [collapsed, setCollapsedState] = useState<boolean>(() => {
+    const forced = new URLSearchParams(window.location.search).get('sidebar')
+    if (forced === 'collapsed') return true
+    if (forced === 'expanded') return false
+    return storage.getStorage<boolean>('sidebar-collapsed') ?? false
+  })
+
+  const setCollapsed = (value: boolean): void => {
+    storage.setStorage('sidebar-collapsed', value)
+    setCollapsedState(value)
+  }
+
+  return (
+    <div className="flex min-h-screen bg-[var(--color-bg)]">
+      <aside
+        className={cn(
+          'sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-[var(--color-border)]',
+          'bg-[var(--color-surface)] transition-[width] duration-300 ease-out md:flex',
+          collapsed ? 'w-16' : 'w-56'
+        )}
+      >
+        <div className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'gap-2.5 px-4')}>
+          <span className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#003791] p-2.5 text-white">
+            <PlayStationLogo size={22} />
           </span>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold">直播桥</div>
-            <div className="text-[11px] text-[var(--color-muted)]">Live Bridge</div>
-          </div>
+          {collapsed ? null : (
+            <div className="whitespace-nowrap leading-tight">
+              <div className="whitespace-nowrap text-sm font-semibold text-[var(--color-fg)]">直播桥</div>
+              <div className="whitespace-nowrap text-[11px] text-[var(--color-muted)]">Live Bridge</div>
+            </div>
+          )}
         </div>
 
-        {NAV.map((item) => {
-          const active = item.key === page
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => onNavigate(item.key)}
-              className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
-                active
-                  ? 'bg-white/10 text-white'
-                  : 'text-white/60 hover:bg-white/5 hover:text-white/90',
-              )}
-            >
-              <span className={cn('text-sm', active ? 'text-white' : 'text-white/40')}>
-                {item.icon}
-              </span>
-              <span className="flex flex-col">
-                <span className="text-sm font-medium">{item.label}</span>
-                <span className="text-[11px] text-[var(--color-muted)]">{item.hint}</span>
-              </span>
-            </button>
-          )
-        })}
+        <nav className={cn('flex flex-1 flex-col gap-1', collapsed ? 'px-2' : 'px-2')}>
+          {NAV.map((item) => {
+            const Icon = item.icon
+            return (
+              <RailButton
+                key={item.key}
+                collapsed={collapsed}
+                active={item.key === page}
+                label={item.label}
+                icon={<Icon size={18} strokeWidth={1.9} className="shrink-0" />}
+                onClick={() => onNavigate(item.key)}
+              />
+            )
+          })}
+        </nav>
 
-        <div className="mt-auto rounded-xl border border-[var(--color-border)] p-3 text-[11px] text-[var(--color-muted)]">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] p-2">
+          <RailButton
+            collapsed={collapsed}
+            label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+            icon={
+              collapsed ? (
+                <PanelLeftOpen size={18} className="shrink-0" />
+              ) : (
+                <PanelLeftClose size={18} className="shrink-0" />
+              )
+            }
+            onClick={() => setCollapsed(!collapsed)}
+          />
+          <RailButton
+            collapsed={collapsed}
+            label={mode === 'dark' ? '浅色模式' : '深色模式'}
+            icon={
+              mode === 'dark' ? (
+                <Sun size={18} className="shrink-0" />
+              ) : (
+                <Moon size={18} className="shrink-0" />
+              )
+            }
+            onClick={toggleTheme}
+          />
+          <div
+            className={cn(
+              'flex h-9 items-center text-[11px] text-[var(--color-muted)]',
+              collapsed ? 'justify-center' : 'gap-2 px-3'
+            )}
+          >
             <span
               className={cn(
-                'inline-block size-2 rounded-full',
-                live ? 'bg-emerald-400' : 'bg-white/25',
+                'size-2 shrink-0 rounded-full',
+                live
+                  ? 'bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/60'
+                  : 'bg-[var(--color-muted)]/40'
               )}
             />
-            {live ? '直播中' : '未开播'}
+            {collapsed ? null : <span className="whitespace-nowrap">{live ? '直播中' : '未开播'}</span>}
           </div>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <nav className="flex gap-1 overflow-x-auto border-b border-[var(--color-border)] p-2 md:hidden">
-          {NAV.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => onNavigate(item.key)}
-              className={cn(
-                'shrink-0 rounded-lg px-3 py-1.5 text-sm',
-                item.key === page ? 'bg-white/10 text-white' : 'text-white/60',
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
+        <nav className="flex items-center gap-1 overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-surface)] p-2 md:hidden">
+          {NAV.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => onNavigate(item.key)}
+                className={cn(
+                  'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm',
+                  item.key === page
+                    ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
+                    : 'text-[var(--color-muted)]'
+                )}
+              >
+                <Icon size={16} />
+                {item.label}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="切换主题"
+            className="ml-auto rounded-lg p-2 text-[var(--color-muted)]"
+          >
+            {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
         </nav>
+
         <main className="mx-auto w-full max-w-5xl flex-1 p-5 md:p-7">{children}</main>
       </div>
     </div>

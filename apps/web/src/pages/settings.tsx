@@ -15,7 +15,7 @@ export function SettingsPage() {
   return (
     <div className="flex flex-col gap-4">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">设置</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-fg)]">设置</h1>
         <p className="mt-1 text-sm text-[var(--color-muted)]">服务地址、接入进度与版本信息</p>
       </header>
 
@@ -23,7 +23,7 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-sm">服务地址</CardTitle>
         </CardHeader>
-        <CardContent className="font-mono text-xs text-white/70">{serverUrl}</CardContent>
+        <CardContent className="font-mono text-xs text-[var(--color-fg)]">{serverUrl}</CardContent>
       </Card>
 
       <Card>
@@ -35,10 +35,10 @@ export function SettingsPage() {
           {PENDING.map((item) => (
             <div key={item.title} className="flex items-center justify-between py-2.5">
               <div>
-                <div className="text-sm text-white/85">{item.title}</div>
+                <div className="text-sm text-[var(--color-fg)]">{item.title}</div>
                 <div className="text-[11px] text-[var(--color-muted)]">{item.desc}</div>
               </div>
-              <span className="rounded-full bg-white/8 px-2 py-0.5 text-[11px] text-white/50">
+              <span className="rounded-full bg-[var(--color-elevated)] px-2 py-0.5 text-[11px] text-[var(--color-muted)]">
                 {item.stage}
               </span>
             </div>

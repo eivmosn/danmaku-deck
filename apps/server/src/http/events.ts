@@ -40,6 +40,15 @@ export function registerEventRoutes(app: FastifyInstance, logs: LogService, bus:
     return { ok: true }
   })
 
+  app.get('/api/events/danmaku/recent', async (request, reply) => {
+    const limit = Number((request.query as Record<string, string>).limit ?? 100)
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
+      reply.code(400)
+      return { ok: false, error: 'limit 需在 1..200 之间' }
+    }
+    return { ok: true, events: bus.recent(limit) }
+  })
+
   // 弹幕实时流：Web / App 订阅
   app.get('/api/events/danmaku/stream', (request, reply) => {
     reply.raw.writeHead(200, {
