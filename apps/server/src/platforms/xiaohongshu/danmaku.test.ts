@@ -56,6 +56,7 @@ describe('XiaohongshuDanmakuClient', () => {
       cookie: 'a1=x',
       onEvent: (event) => events.push(event),
       spawnImpl: vi.fn(() => child) as never,
+      raw: false,
     })
 
     await client.connect()
@@ -78,6 +79,7 @@ describe('XiaohongshuDanmakuClient', () => {
       cookie: 'c',
       onEvent: (event) => events.push(event),
       spawnImpl: vi.fn(() => child) as never,
+      raw: false,
     })
 
     await client.connect()
@@ -274,19 +276,76 @@ describe('进场事件 audience_join_v2', () => {
     })
   })
 
-  it('归一化路径：catbus 归成 other 但带昵称，也认作进场', () => {
-    // catbus 的 default 分支输出长这样（type=other，user 来自 customData.profile）
+  it('归一化路径的 other 不再当成进场', () => {
+    // catbus 把 gift_dock_and_effect / follow_emcee 都压成 other，
+    // 以前「other + 有昵称 = 进场」会把礼物和关注误显示成「进入了直播间」。
     const normalized =
       '{"type":"other","time":"2026-11-20T14:50:57Z","user":{"name":"MJ","id":"5da87fb8"},"text":null}'
-    expect(parseCatbusLine(normalized)).toMatchObject({
-      platform: 'xiaohongshu',
-      kind: 'enter',
-      user: 'MJ',
-    })
+    expect(parseCatbusLine(normalized)).toBeNull()
   })
 
   it('不带昵称的 other 仍然忽略（排行榜横幅之类）', () => {
     expect(parseCatbusLine('{"type":"other","user":null,"text":null}')).toBeNull()
     expect(parseCatbusLine('{"type":"other","text":"榜单"}')).toBeNull()
+  })
+})
+
+/** 构造一条 catbus --raw 的原始输出；字段名依据 DimSum 文档列出的 xiaohongshu.* 消息族 */
+function rawEvent(customData: Record<string, unknown>): string {
+  return JSON.stringify({ ts: 1795200000000, customData })
+}
+
+describe('小红书礼物与关注（真实类型名）', () => {
+  // 类型名依据 DimSum Chat 文档列出的 xiaohongshu.* 消息族：
+  //   text / gift_dock_and_effect / praise / audience_join_v2 / follow_emcee
+  it('gift_dock_and_effect 认成礼物，字段取 gift.name / gift.count', () => {
+    const event = parseCatbusRawLine(
+      rawEvent({
+        type: 'gift_dock_and_effect',
+        profile: { nickname: '送礼的' },
+        gift: { name: '音乐盒', count: 3 },
+      }),
+    )
+    expect(event).toMatchObject({
+      platform: 'xiaohongshu',
+      kind: 'gift',
+      user: '送礼的',
+      text: '音乐盒',
+      count: 3,
+    })
+  })
+
+  it('字段写成 gift_info 也认，只有 desc 时至少不丢事件', () => {
+    const withInfo = parseCatbusRawLine(
+      rawEvent({
+        type: 'gift_dock_and_effect',
+        profile: { nickname: 'A' },
+        gift_info: { name: '小花花', count: 2 },
+      }),
+    )
+    expect(withInfo).toMatchObject({ kind: 'gift', text: '小花花', count: 2 })
+
+    const descOnly = parseCatbusRawLine(
+      rawEvent({ type: 'gift_dock_and_effect', profile: { nickname: 'B' }, desc: '棒棒糖' }),
+    )
+    expect(descOnly).toMatchObject({ kind: 'gift', text: '棒棒糖', count: 1 })
+  })
+
+  it('完全认不出字段时仍然产出一条礼物事件，文案用兜底（会触发原始报文诊断日志）', () => {
+    const event = parseCatbusRawLine(
+      rawEvent({
+        type: 'gift_dock_and_effect',
+        profile: { nickname: 'C' },
+        payload: { weird: true },
+      }),
+    )
+    expect(event).toMatchObject({ kind: 'gift', user: 'C', text: '礼物', count: 1 })
+  })
+
+  it('follow_emcee 认成关注', () => {
+    const event = parseCatbusRawLine(
+      rawEvent({ type: 'follow_emcee', profile: { nickname: '新粉' } }),
+    )
+    expect(event).toMatchObject({ kind: 'follow', user: '新粉', text: '关注了主播' })
   })
 })

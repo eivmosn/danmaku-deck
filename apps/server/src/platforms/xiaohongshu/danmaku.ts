@@ -40,20 +40,6 @@ export function parseCatbusLine(line: string): DanmakuEvent | null {
   const needsUser = kind === 'chat' || kind === 'gift'
   if (!user && (needsUser || !LABEL[kind])) return null
 
-  // catbus 不认识 audience_join_v2（小红书的进场类型），会落到它的 default 分支变成
-  // type:"other"，但昵称仍然带在 user 里。实测报文见 test 里的 realJoin 夹具。
-  // 必须放在算文案之前，否则会因为 other 没有固定文案被当成空事件丢掉。
-  if (kind === 'other' && user) {
-    return {
-      platform: 'xiaohongshu',
-      kind: 'enter',
-      user,
-      text: '进入了直播间',
-      count: 1,
-      at: raw.time ?? new Date().toISOString(),
-    }
-  }
-
   const giftName = raw.gift?.name ?? ''
   const giftCount = Number(raw.gift?.count ?? 0)
   const giftText = giftName ? (giftCount > 1 ? `${giftName} ×${giftCount}` : giftName) : ''
@@ -128,21 +114,22 @@ export function parseCatbusRawLine(line: string): DanmakuEvent | null {
   const stamp = payload.ts ?? custom.current_time
   const at = stamp ? new Date(stamp).toISOString() : new Date().toISOString()
 
-  const giftName = String(custom.gift?.name ?? custom.gift_info?.name ?? custom.desc ?? '')
-  const giftCount = Number(custom.gift?.count ?? custom.gift_info?.count ?? custom.count ?? 1) || 1
-
   switch (type) {
     case 'text':
       if (!user || !custom.desc) return null
       return { platform: 'xiaohongshu', kind: 'chat', user, text: custom.desc, count: 0, at }
+    case 'gift_dock_and_effect':
     case 'gift': {
-      if (!user || !giftName) return null
+      // 礼物名/数量字段名没有实证：catbus 的 gift 分支从没真正命中过小红书的类型，
+      // 所以这里全部兜底，取不到时由 handleChunk 把原始报文打出来。
+      const name = String(custom.gift?.name ?? custom.gift_info?.name ?? custom.desc ?? '')
+      const count = Number(custom.gift?.count ?? custom.gift_info?.count ?? custom.count ?? 0)
       return {
         platform: 'xiaohongshu',
         kind: 'gift',
         user,
-        text: giftName,
-        count: giftCount,
+        text: name || '礼物',
+        count: count > 0 ? count : 1,
         at,
       }
     }
@@ -155,6 +142,7 @@ export function parseCatbusRawLine(line: string): DanmakuEvent | null {
     case 'enter_room':
       return { platform: 'xiaohongshu', kind: 'enter', user, text: '进入了直播间', count: 1, at }
     case 'follow':
+    case 'follow_emcee':
       return { platform: 'xiaohongshu', kind: 'follow', user, text: '关注了主播', count: 1, at }
     default:
       // viewer_heart / audience_num / letter_refresh 之类没有展示价值
@@ -173,6 +161,8 @@ export interface XhsDanmakuOptions {
   spawnImpl?: typeof spawn
   /** catbus 可执行文件路径，默认从 PATH 找 */
   command?: string
+  /** 是否用 --raw 模式（默认跟随 PS5LB_XHS_RAW，未设置时为 true） */
+  raw?: boolean
 }
 
 export class XiaohongshuDanmakuClient {
@@ -195,7 +185,10 @@ export class XiaohongshuDanmakuClient {
     // catbus 通过环境变量拿 cookie，避免命令里出现凭证
     // 注意：同一个房间只允许一条弹幕连接，多开会互相踢，所以绝不能并发两条
     const args = ['xhs', 'live', 'listen', this.options.roomId, '--duration', '3600']
-    if (process.env.PS5LB_XHS_RAW === '1') args.push('--raw')
+    // 默认走 --raw：catbus 的归一化只认 come/enter/enter_room 和 gift，
+    // 而小红书真实类型是 audience_join_v2 / gift_dock_and_effect / follow_emcee，
+    // 归一化会把这些统统压成 other，类型信息就丢了。
+    if (this.rawMode()) args.push('--raw')
     const child = spawnImpl(this.options.command ?? 'catbus', args, {
       env: { ...process.env, CATBUS_XHS_COOKIE: this.options.cookie },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -239,6 +232,11 @@ export class XiaohongshuDanmakuClient {
     child?.kill('SIGTERM')
   }
 
+  /** --raw 默认开启：归一化会把 gift_dock_and_effect / audience_join_v2 压成 other，类型就丢了 */
+  private rawMode(): boolean {
+    return this.options.raw ?? process.env.PS5LB_XHS_RAW !== '0'
+  }
+
   private scheduleReconnect(): void {
     if (this.stopped || this.reconnectTimer) return
     const delay = Math.min(30_000, 1000 * 2 ** Math.min(this.attempts, 5))
@@ -259,17 +257,22 @@ export class XiaohongshuDanmakuClient {
     this.buffer += chunk.toString('utf8')
     const lines = this.buffer.split(/\r?\n/)
     this.buffer = lines.pop() ?? ''
-    const rawMode = process.env.PS5LB_XHS_RAW === '1'
+    const rawMode = this.rawMode()
     for (const line of lines) {
       const event = rawMode ? parseCatbusRawLine(line) : parseCatbusLine(line)
       if (event) {
         // 收到消息说明链路是活的，重连退避从头算
         this.attempts = 0
         this.options.onEvent(event)
+        // 礼物文案还是兜底值，说明字段名猜错了：把原始报文留一份
+        if (rawMode && event.kind === 'gift' && event.text === '礼物') {
+          this.options.onState?.('notice', line.trim().slice(0, 400))
+        }
         continue
       }
       if (rawMode && line.trim().startsWith('{')) {
-        // 诊断模式：把没能归类的原始事件打出来，用来确认还漏了哪些类型
+        // 没能归类 → 打出来看是什么类型；礼物字段没认出来（只剩兜底文案）也要打，
+        // 这样下一场直播就能确定 gift_dock_and_effect 里到底叫什么字段。
         this.options.onState?.('notice', line.trim().slice(0, 400))
       }
     }
