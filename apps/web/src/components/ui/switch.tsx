@@ -1,6 +1,6 @@
 import { Switch as BaseSwitch } from '@base-ui/react/switch'
 import { useId, type ComponentProps } from 'react'
-import { cn } from '../../lib/cn'
+import { cn } from '@/lib/cn'
 
 export interface SwitchProps extends Omit<ComponentProps<typeof BaseSwitch.Root>, 'className'> {
   label: string

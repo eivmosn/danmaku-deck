@@ -43,7 +43,7 @@ pnpm format       # oxfmt 格式化
 ## 约定
 
 - TypeScript 严格模式，`noUncheckedIndexedAccess` 打开
-- 服务端 ESM（NodeNext），相对导入必须带 `.js`
+- 跨目录导入统一用 `@/` 别名（已配 tsconfig paths + vite/vitest/tsdown 别名），同目录内部才用相对路径
 - 前端组件放 `apps/web/src/components/ui/`，采用 coss 的「源码自有」方式，不引入黑盒组件库
 - 提交前由 simple-git-hooks + nano-staged 自动跑 oxlint + oxfmt（只处理暂存文件）
 

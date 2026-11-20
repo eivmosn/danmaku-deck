@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
@@ -7,4 +8,7 @@ export default defineConfig({
   target: 'node22',
   dts: false,
   clean: true,
+  alias: {
+    '@/': fileURLToPath(new URL('./src/', import.meta.url)),
+  },
 })

@@ -3,8 +3,8 @@ import { registerEventRoutes } from './http/events.js'
 import { registerHookRoutes } from './http/hooks.js'
 import { registerLogRoutes } from './http/logs.js'
 import { registerStatusRoutes } from './http/status.js'
-import { createLogger, LogService } from './logger.js'
-import { Orchestrator } from './orchestrator.js'
+import { createLogger, LogService } from '@/logger'
+import { Orchestrator } from '@/orchestrator'
 
 export interface BuildAppOptions {
   logger?: boolean

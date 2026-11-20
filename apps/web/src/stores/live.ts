@@ -1,7 +1,7 @@
 import type { Platform, Status } from '@ps5lb/shared'
 import { useStorage } from '@eivmosn/utils'
 import { create } from 'zustand'
-import { fetchStatus } from '../lib/api'
+import { fetchStatus } from '@/lib/api'
 
 const storage = useStorage({ prefix: 'ps5lb.', type: 'localStorage' })
 const ENABLED_KEY = 'enabled-platforms'

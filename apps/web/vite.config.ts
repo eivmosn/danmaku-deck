@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
+      '@/': fileURLToPath(new URL('./src/', import.meta.url)),
       '@ps5lb/shared': fileURLToPath(
         new URL('../../packages/shared/src/index.ts', import.meta.url),
       ),
@@ -15,7 +16,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://127.0.0.1:8080',
+      '/api': 'http://127.0.0.1:8787',
     },
   },
 })

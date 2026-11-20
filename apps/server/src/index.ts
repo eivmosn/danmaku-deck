@@ -1,8 +1,8 @@
-import { buildApp } from './app.js'
-import { printBanner } from './banner.js'
-import { loadConfig } from './config.js'
-import { createLogger, LogService } from './logger.js'
-import { Orchestrator } from './orchestrator.js'
+import { buildApp } from '@/app'
+import { printBanner } from '@/banner'
+import { loadConfig } from '@/config'
+import { createLogger, LogService } from '@/logger'
+import { Orchestrator } from '@/orchestrator'
 
 const config = loadConfig()
 const logs = new LogService({ dir: process.env.PS5LB_LOG_DIR ?? 'logs' })

@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { createLogger, LogService } from './logger.js'
+import { createLogger, LogService } from '@/logger'
 
 const fixedClock = (): number => 1_700_000_000_000
 

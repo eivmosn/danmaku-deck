@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { statusSchema } from '@ps5lb/shared'
-import { buildApp } from './app.js'
-import { LogService } from './logger.js'
-import { Orchestrator } from './orchestrator.js'
+import { buildApp } from '@/app'
+import { LogService } from '@/logger'
+import { Orchestrator } from '@/orchestrator'
 
 const fixedClock = (): number => 1_700_000_000_000
 

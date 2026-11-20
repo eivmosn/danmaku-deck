@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Orchestrator } from './orchestrator.js'
+import { Orchestrator } from '@/orchestrator'
 
 const fixedClock = (): number => 1_700_000_000_000
 
