@@ -8,6 +8,7 @@ import { createLogger, LogService } from '@/logger'
 import { Orchestrator } from '@/orchestrator'
 import { IrcServer } from '@/danmaku/irc-server'
 import { BilibiliLive } from '@/platforms/bilibili/live'
+import { fetchXhsProfile } from '@/platforms/xiaohongshu/account'
 import { XiaohongshuApi } from '@/platforms/xiaohongshu/api'
 import { DnsServer } from '@/network/dns'
 import { SniRelay } from '@/network/relay'
@@ -54,6 +55,26 @@ bus.subscribe((event) => {
 
 const bilibiliLive = new BilibiliLive()
 const xiaohongshuApi = new XiaohongshuApi()
+
+// 旧账号名是占位符时，启动后用 catbus 补一次真实昵称
+const xhsAccount = accounts.get('xiaohongshu')
+if (xhsAccount && xhsAccount.displayName === '小红书账号') {
+  const storedCookie = accounts.secret('xiaohongshu')?.cookie ?? ''
+  if (storedCookie) {
+    void fetchXhsProfile(storedCookie).then((profile) => {
+      if (!profile) return
+      accounts.signIn({
+        platform: 'xiaohongshu',
+        displayName: profile.name,
+        externalId: profile.id,
+        secret: { cookie: storedCookie },
+      })
+      orchestrator.setPlatform('xiaohongshu', { accountName: profile.name })
+      orchestrator.refresh()
+      createLogger(logs, '小红书').info(`账号昵称已补全：${profile.name}`)
+    })
+  }
+}
 
 // 重启后把登录态与开关恢复出来，界面不用重新点
 for (const platform of ['bilibili', 'xiaohongshu'] as const) {

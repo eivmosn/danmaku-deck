@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { AccountsStore } from '@/accounts/store'
 import type { LogService } from '@/logger'
 import type { Orchestrator } from '@/orchestrator'
+import { fetchXhsProfile } from '@/platforms/xiaohongshu/account'
 import type { XiaohongshuApi } from '@/platforms/xiaohongshu/api'
 import type { PushTargetsStore } from '@/push/targets-store'
 
@@ -34,10 +35,12 @@ export function registerXiaohongshuRoutes(app: FastifyInstance, deps: Xiaohongsh
         return { ok: false, error: auth.detail ?? '登录失败' }
       }
 
+      // 用 catbus 取昵称，取不到就用占位名（不影响登录）
+      const profile = await fetchXhsProfile(parsed.data.cookie)
       const account = deps.accounts.signIn({
         platform: 'xiaohongshu',
-        displayName: '小红书账号',
-        externalId: '',
+        displayName: profile?.name ?? '小红书账号',
+        externalId: profile?.id ?? '',
         secret: { cookie: parsed.data.cookie },
       })
       deps.pushTargets.clear('xiaohongshu')
