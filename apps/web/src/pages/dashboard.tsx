@@ -43,7 +43,12 @@ export function DashboardPage({ onOpenLogs }: { onOpenLogs: () => void }) {
           hint="本场时长"
           icon={Clock}
         />
-        <StatCard label="收流路径" value={status?.streamPath ?? '—'} hint="PS5 推流标识" icon={Waypoints} />
+        <StatCard
+          label="收流路径"
+          value={status?.streamPath ?? '—'}
+          hint="PS5 推流标识"
+          icon={Waypoints}
+        />
         <StatCard
           label="今日事件"
           value={danmaku.length}

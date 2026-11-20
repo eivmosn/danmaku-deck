@@ -1,5 +1,14 @@
 import type { DanmakuEvent } from '@ps5lb/shared'
-import { DoorOpen, Gift, Heart, MessageSquare, Shield, UserPlus, Zap, type LucideIcon } from 'lucide-react'
+import {
+  DoorOpen,
+  Gift,
+  Heart,
+  MessageSquare,
+  Shield,
+  UserPlus,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 const KIND_META: Record<string, { icon: LucideIcon; className: string }> = {

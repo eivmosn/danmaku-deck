@@ -53,7 +53,7 @@ function RailButton({ icon, label, collapsed, active, onClick }: RailButtonProps
         collapsed ? 'mx-auto w-10 justify-center' : 'w-full gap-3 px-3',
         active
           ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
-          : 'text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]'
+          : 'text-[var(--color-muted)] hover:bg-[var(--color-hover)] hover:text-[var(--color-fg)]',
       )}
     >
       {icon}
@@ -82,17 +82,23 @@ export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
         className={cn(
           'sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-[var(--color-border)]',
           'bg-[var(--color-surface)] transition-[width] duration-300 ease-out md:flex',
-          collapsed ? 'w-16' : 'w-56'
+          collapsed ? 'w-16' : 'w-56',
         )}
       >
-        <div className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'gap-2.5 px-4')}>
+        <div
+          className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'gap-2.5 px-4')}
+        >
           <span className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#003791] p-2.5 text-white">
             <PlayStationLogo size={22} />
           </span>
           {collapsed ? null : (
             <div className="whitespace-nowrap leading-tight">
-              <div className="whitespace-nowrap text-sm font-semibold text-[var(--color-fg)]">直播桥</div>
-              <div className="whitespace-nowrap text-[11px] text-[var(--color-muted)]">Live Bridge</div>
+              <div className="whitespace-nowrap text-sm font-semibold text-[var(--color-fg)]">
+                直播桥
+              </div>
+              <div className="whitespace-nowrap text-[11px] text-[var(--color-muted)]">
+                Live Bridge
+              </div>
             </div>
           )}
         </div>
@@ -141,7 +147,7 @@ export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
           <div
             className={cn(
               'flex h-9 items-center text-[11px] text-[var(--color-muted)]',
-              collapsed ? 'justify-center' : 'gap-2 px-3'
+              collapsed ? 'justify-center' : 'gap-2 px-3',
             )}
           >
             <span
@@ -149,10 +155,12 @@ export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
                 'size-2 shrink-0 rounded-full',
                 live
                   ? 'bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/60'
-                  : 'bg-[var(--color-muted)]/40'
+                  : 'bg-[var(--color-muted)]/40',
               )}
             />
-            {collapsed ? null : <span className="whitespace-nowrap">{live ? '直播中' : '未开播'}</span>}
+            {collapsed ? null : (
+              <span className="whitespace-nowrap">{live ? '直播中' : '未开播'}</span>
+            )}
           </div>
         </div>
       </aside>
@@ -170,7 +178,7 @@ export function AppShell({ page, onNavigate, live, children }: AppShellProps) {
                   'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm',
                   item.key === page
                     ? 'bg-[var(--color-elevated)] text-[var(--color-fg)]'
-                    : 'text-[var(--color-muted)]'
+                    : 'text-[var(--color-muted)]',
                 )}
               >
                 <Icon size={16} />

@@ -48,7 +48,12 @@ export function PlatformCard({ status, platform, onToggle }: PlatformCardProps) 
 
       <CardContent className="flex items-center justify-between border-t border-[var(--color-border)] pt-3">
         <span className="text-[11px] text-[var(--color-muted)]">开播时推送</span>
-        <Switch label="" aria-label={`${meta.name}推送`} checked={enabled} onCheckedChange={onToggle} />
+        <Switch
+          label=""
+          aria-label={`${meta.name}推送`}
+          checked={enabled}
+          onCheckedChange={onToggle}
+        />
       </CardContent>
     </Card>
   )

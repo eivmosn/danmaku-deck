@@ -16,14 +16,14 @@ export function Switch({ label, className, ...props }: SwitchProps) {
         className={cn(
           'group relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full',
           'bg-[var(--color-elevated)] transition-colors data-[checked]:bg-[var(--color-bilibili)]',
-          'focus-visible:ring-2 focus-visible:ring-[var(--color-bilibili)]/50 focus-visible:outline-none'
+          'focus-visible:ring-2 focus-visible:ring-[var(--color-bilibili)]/50 focus-visible:outline-none',
         )}
         {...props}
       >
         <BaseSwitch.Thumb
           className={cn(
             'block size-5 translate-x-0.5 rounded-full bg-white shadow-sm transition-transform',
-            'group-data-[checked]:translate-x-[22px]'
+            'group-data-[checked]:translate-x-[22px]',
           )}
         />
       </BaseSwitch.Root>

@@ -4,7 +4,10 @@ import { cn } from '@/lib/cn'
 export function Card({ className, ...props }: ComponentProps<'section'>) {
   return (
     <section
-      className={cn('rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5', className)}
+      className={cn(
+        'rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5',
+        className,
+      )}
       {...props}
     />
   )
@@ -15,7 +18,9 @@ export function CardHeader({ className, ...props }: ComponentProps<'header'>) {
 }
 
 export function CardTitle({ className, ...props }: ComponentProps<'h2'>) {
-  return <h2 className={cn('text-base font-semibold text-[var(--color-fg)]', className)} {...props} />
+  return (
+    <h2 className={cn('text-base font-semibold text-[var(--color-fg)]', className)} {...props} />
+  )
 }
 
 export function CardContent({ className, ...props }: ComponentProps<'div'>) {

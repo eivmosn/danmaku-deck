@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { statusSchema } from '@ps5lb/shared'
 import { buildApp } from '@/app'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { AccountsStore } from '@/accounts/store'
 import { LogService } from '@/logger'
 import { Orchestrator } from '@/orchestrator'
 
@@ -120,6 +124,41 @@ describe('http', () => {
       payload: { platform: 'bilibili' },
     })
     expect(response.statusCode).toBe(400)
+    await app.close()
+  })
+
+  it('账号列表不返回凭证，激活后标记为当前', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ps5lb-api-'))
+    const accounts = new AccountsStore({ dir })
+    const created = accounts.add({
+      platform: 'bilibili',
+      displayName: '丘野Pixel',
+      externalId: '31455973',
+      secret: { sessdata: 'secret-value' },
+    })
+    const app = buildApp({ accounts })
+
+    const list = await app.inject({ method: 'GET', url: '/api/accounts' })
+    expect(list.body).not.toContain('secret-value')
+    const parsed = list.json() as { accounts: Array<{ active: boolean }> }
+    expect(parsed.accounts[0]?.active).toBe(true)
+
+    const activated = await app.inject({
+      method: 'POST',
+      url: `/api/accounts/bilibili/${created.id}/activate`,
+    })
+    expect(activated.statusCode).toBe(200)
+    await app.close()
+  })
+
+  it('激活不存在的账号返回 404', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ps5lb-api-'))
+    const app = buildApp({ accounts: new AccountsStore({ dir }) })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/accounts/bilibili/nope/activate',
+    })
+    expect(response.statusCode).toBe(404)
     await app.close()
   })
 

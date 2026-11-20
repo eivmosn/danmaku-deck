@@ -7,7 +7,8 @@ type Size = 'sm' | 'md' | 'icon'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-[var(--color-fg)] text-[var(--color-bg)] hover:opacity-90',
-  secondary: 'bg-[var(--color-elevated)] text-[var(--color-fg)] hover:brightness-95 dark:hover:brightness-125',
+  secondary:
+    'bg-[var(--color-elevated)] text-[var(--color-fg)] hover:brightness-95 dark:hover:brightness-125',
   ghost: 'bg-transparent text-[var(--color-muted)] hover:bg-[var(--color-hover)]',
 }
 
@@ -34,7 +35,7 @@ export function Button({ variant = 'secondary', size = 'md', className, ...props
         'disabled:pointer-events-none disabled:opacity-50',
         variants[variant],
         sizes[size],
-        className
+        className,
       )}
       {...props}
     />
