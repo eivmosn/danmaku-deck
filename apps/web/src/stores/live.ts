@@ -1,6 +1,13 @@
 import type { Platform, Status } from '@ps5lb/shared'
+import { useStorage } from '@eivmosn/utils'
 import { create } from 'zustand'
 import { fetchStatus } from '../lib/api'
+
+const storage = useStorage({ prefix: 'ps5lb.', type: 'localStorage' })
+const ENABLED_KEY = 'enabled-platforms'
+
+const defaultEnabled: Record<Platform, boolean> = { bilibili: true, xiaohongshu: false }
+const savedEnabled = storage.getStorage<Record<Platform, boolean>>(ENABLED_KEY)
 
 interface LiveStore {
   status: Status | null
@@ -16,7 +23,7 @@ export const useLiveStore = create<LiveStore>((set, get) => ({
   status: null,
   error: null,
   loading: false,
-  enabled: { bilibili: true, xiaohongshu: false },
+  enabled: savedEnabled ?? defaultEnabled,
 
   refresh: async () => {
     set({ loading: true, error: null })
@@ -30,6 +37,8 @@ export const useLiveStore = create<LiveStore>((set, get) => ({
 
   toggle: (platform) => {
     const current = get().enabled
-    set({ enabled: { ...current, [platform]: !current[platform] } })
+    const next = { ...current, [platform]: !current[platform] }
+    storage.setStorage(ENABLED_KEY, next)
+    set({ enabled: next })
   },
 }))

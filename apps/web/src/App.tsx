@@ -1,3 +1,4 @@
+import { formatDate } from '@eivmosn/utils'
 import { useEffect } from 'react'
 import { PlatformCard } from './components/platform-card'
 import { Badge } from './components/ui/badge'
@@ -25,9 +26,16 @@ export function App() {
     <main className="mx-auto flex max-w-3xl flex-col gap-5 p-6">
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">PS5 直播桥</h1>
-        <Badge tone={status?.state === 'live' ? 'success' : 'neutral'}>
-          {STATE_TEXT[status?.state ?? 'idle'] ?? '未知'}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {status ? (
+            <span className="text-xs text-[var(--color-muted)]">
+              更新于 {formatDate(status.updatedAt, 'HH:mm:ss')}
+            </span>
+          ) : null}
+          <Badge tone={status?.state === 'live' ? 'success' : 'neutral'}>
+            {STATE_TEXT[status?.state ?? 'idle'] ?? '未知'}
+          </Badge>
+        </div>
       </header>
 
       {error ? (

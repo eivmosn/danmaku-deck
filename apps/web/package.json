@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "@eivmosn/utils": "^1.0.0",
     "@ps5lb/shared": "workspace:*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
